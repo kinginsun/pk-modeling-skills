@@ -2,7 +2,7 @@
 name: easy-nonmem
 description: >-
   Conversational NM-TRAN/NONMEM control-stream authoring, PsN execute-based runs,
-  and quick R plots from $TABLE output. Bundles NONMEM 7.6 reference manuals under
+  and quick R plots from $TABLE output. Bundles curated NONMEM 7.6 references under
   references/ next to this file. Use when the user builds or edits NONMEM models
   (.mod/.ctl), runs execute/nmfe, wants IVIVC/PKPD control files tested, or asks
   for DV–PRED diagnostics and figures. Trigger terms: NONMEM, NM-TRAN, PsN,
@@ -23,16 +23,20 @@ description: >-
 
 ## When to read local docs
 
-Official NONMEM 7.6 help ships **inside this skill** under `references/` (sibling of this `SKILL.md`):
+Official NONMEM 7.6 reference ships **inside this skill** under `references/`
+(sibling of this `SKILL.md`) as curated markdown, indexed in
+[`references/README.md`](references/README.md):
 
-| Kind                           | Path (relative to this skill folder) |
-| ------------------------------ | ------------------------------------ |
-| NM-TRAN `$` record, plain text | `references/help/$<RECORD>.ctl`      |
-| User guides (Markdown)         | `references/guides/I.md`, `IV.md`, … |
+| Need | Path (relative to this skill folder) |
+| --- | --- |
+| `$INPUT`/`$DATA` + data items | `references/data-items.md` |
+| All other `$` records (`$THETA`, `$OMEGA`, `$PRIOR`, `$MSFI`, `$MIX`, …) | `references/records.md` |
+| ADVAN/TRANS, `$MODEL`, `$SUBROUTINES` | `references/predpp.md` |
+| `$PK`/`$DES`/`$ERROR`/`$PRED` code | `references/model-code.md` |
+| `$ESTIMATION`/`$COVARIANCE`/`$SIMULATION`, methods | `references/estimation.md` |
+| `$TABLE`/`$SCATTERPLOT` output | `references/output.md` |
 
-Always read the relevant `references/help/$*.ctl` **before** inventing options.
-
-**Suggested manuals**: `references/guides/IV.md` (NM-TRAN), `references/guides/VI.md` (PREDPP), `references/guides/VII.md` (estimation), `references/guides/VIII_part1_p1-500.md` + `VIII_part2_p501-876.md` (Help), `references/guides/useful_variables.md`.
+Always read the relevant reference file **before** inventing options.
 
 ## Conversation-first control stream
 
@@ -74,7 +78,7 @@ For publication VPC or bootstrap workflows, use additional PsN tools (`vpc`, `bo
 
 ## What not to do
 
-- Do not guess rare `$ESTIMATION` / `$COVARIANCE` options without checking `references/help/$estimat.ctl` and `references/help/$covar.ctl`.
+- Do not guess rare `$ESTIMATION` / `$COVARIANCE` options without checking `references/estimation.md`.
 - Do not strip required items or ignore `EVID` semantics when using PREDPP.
 - Do not assume `nmfe*` works without verifying (wrapper/Docker/permissions).
 

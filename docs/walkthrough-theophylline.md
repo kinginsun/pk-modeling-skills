@@ -60,8 +60,9 @@ wrote theo_nm.csv: 132 rows, 12 doses, 120 observations, 12 subjects
 
 ### A2. Author the control stream
 
-Before writing options, the skill says to consult the bundled guides
-(`references/guides/VI.md` → section *C.2 ADVAN2*, and `references/help/$input.ctl`).
+Before writing options, the skill says to consult the bundled references
+(`references/predpp.md` → *ADVAN catalog* for the one-compartment oral layout, and
+`references/data-items.md` for `$INPUT`).
 That confirms: one-compartment first-order absorption = `ADVAN2 TRANS2`, default
 observation compartment is the central (here `CMT=2`).
 

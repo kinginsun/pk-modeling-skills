@@ -40,8 +40,8 @@ $TABLE ID TIME MDV AMT DV PRED IPRED RES WRES CWRES CL V NOAPPEND
 
 Notes:
 
-- **`METHOD=0`** ≈ FO, **`METHOD=1` + `INTERACTION`** ≈ FOCE interaction—always confirm in `references/help/$estimat.ctl` (under the skill’s `references/` tree) for your NONMEM version.  
-- For other ADVAN/TRANS pairs, see `references/guides/VI.md` and `references/help/$model.ctl`.
+- **`METHOD=0`** ≈ FO, **`METHOD=1` + `INTERACTION`** ≈ FOCE interaction—always confirm in `references/estimation.md` (under the skill's `references/` tree) for your NONMEM version.  
+- For other ADVAN/TRANS pairs, see `references/predpp.md`.
 
 ## PsN run
 
@@ -78,13 +78,13 @@ Use **CWRES vs PRED** or **NPDE** only if those columns were requested in `$TABL
 ## Documentation paths (bundled in `easy-nonmem`)
 
 Paths are relative to **this skill's folder** (the directory containing `SKILL.md`).
+Full index: `references/README.md`.
 
 | Need | Path |
 |------|------|
-| `$INPUT` help | `references/help/$input.ctl` |
-| `$DATA` / `IGNORE` | `references/help/$data.ctl` |
-| `$DES` | `references/help/$des.ctl` |
-| `$ERROR` | `references/help/$error.ctl` |
-| `$ESTIMATION` | `references/help/$estimat.ctl` |
-| NM-TRAN guide | `references/guides/IV.md` |
-| PREDPP guide | `references/guides/VI.md` |
+| `$INPUT` / `$DATA` / data items | `references/data-items.md` |
+| `$THETA`/`$OMEGA`/`$SIGMA`, `$PRIOR`, `$MSFI`, `$MIX`, other records | `references/records.md` |
+| ADVAN/TRANS, `$MODEL`, `$SUBROUTINES` | `references/predpp.md` |
+| `$PK` / `$DES` / `$ERROR` / `$PRED` code | `references/model-code.md` |
+| `$ESTIMATION` / `$COVARIANCE` / `$SIMULATION` | `references/estimation.md` |
+| `$TABLE` / `$SCATTERPLOT` | `references/output.md` |

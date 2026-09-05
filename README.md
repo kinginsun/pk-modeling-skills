@@ -13,7 +13,7 @@ plots — with the official manuals bundled for offline lookup.
 
 | Skill | Path | What it does |
 |-------|------|--------------|
-| **easy-nonmem** | [`skills/easy-nonmem`](skills/easy-nonmem/SKILL.md) | Conversational NM-TRAN control-stream authoring, PsN `execute` runs, R/ggplot2 diagnostics. Ships NONMEM 7.6 Users Guides as markdown (`references/guides/`) plus all `$record` help files (`references/help/`). |
+| **easy-nonmem** | [`skills/easy-nonmem`](skills/easy-nonmem/SKILL.md) | Conversational NM-TRAN control-stream authoring, PsN `execute` runs, R/ggplot2 diagnostics. Ships curated NONMEM 7.6 references as markdown under `references/` (data items, records, PREDPP, model code, estimation, output). |
 | **monolix-cli** | [`skills/monolix-cli`](skills/monolix-cli/SKILL.md) | Headless MonolixSuite 2024R1: estimation, model building (COSSAC/SAMBA), convergence assessment, bootstrap, and `lixoftConnectors` R automation. Ships the Apple-Silicon x86_64 compiler shim and an `.mlxtran` authoring reference. |
 
 Tool integrations are modular: more tools (e.g. Phoenix NLME, nlmixr, Stan)
