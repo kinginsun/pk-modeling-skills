@@ -8,6 +8,9 @@
 **/NM_run*/
 **/smoke_*/
 *.png
+# ...but keep committed figures (walkthrough + example outputs)
+!docs/assets/*.png
+!examples/nonmem-theophylline/*.png
 
 # Python
 __pycache__/

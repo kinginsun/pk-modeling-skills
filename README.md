@@ -32,8 +32,11 @@ pk-modeling-skills/
 ├── scripts/
 │   ├── install.sh       ← copy/symlink skills into .cursor/skills or ~/.claude/skills
 │   └── doctor.sh        ← environment checks + smoke tests
+├── docs/
+│   └── walkthrough-theophylline.md ← narrated end-to-end session with both skills
 └── examples/            ← small, runnable example projects
     ├── nonmem-pop-pk/        1-cpt IV popPK (run1.mod + data.csv, reference .lst)
+    ├── nonmem-theophylline/  1-cpt oral popPK + GOF plots (walkthrough Part A)
     ├── nonmem-ivivc/         level-A IVIVC, Hill dissolution link (Balan et al. metformin)
     ├── monolix-theophylline/ theophylline popPK + covariate search + reference outputs
     └── monolix-ivivc/        IVIVC .mlxtran project + reference ECharts report
@@ -70,6 +73,14 @@ Then ask your agent something like:
 
 - “Using the easy-nonmem skill, write a 2-compartment oral PK model for my data and run it with PsN.”
 - “Run a bootstrap on this .mlxtran project headlessly with Monolix.”
+
+## See it in action
+
+[`docs/walkthrough-theophylline.md`](docs/walkthrough-theophylline.md) is a
+narrated, fully reproducible session: the classic theophylline dataset is fitted
+with **NONMEM + PsN** (via `easy-nonmem`) and then re-fit headlessly in
+**Monolix** (via `monolix-cli`), with real run outputs, GOF plots, and a
+cross-tool parameter comparison (KA/CL/V agree to within ~2%).
 
 ## Legal notes
 

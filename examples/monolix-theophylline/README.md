@@ -11,6 +11,7 @@ weight-based covariate modeling and allometric scaling.
 | `theophylline_allometric.mlxtran` | Allometric scaling variant |
 | `theophylline_data.csv` | Theophylline dataset |
 | `theophylline_project/`, `theophylline_final_*/`, `theophylline_allometric/` | Reference result folders (estimates, SE, tests, bootstrap) |
+| `theophylline_walkthrough/` | SAEM result folder from the narrated walkthrough (`docs/walkthrough-theophylline.md`) |
 | `theophylline_monolix_report.html` | Reference ECharts report built from the result folders |
 
 Run (requires MonolixSuite 2024R1; see SETUP.md). From this examples folder,
