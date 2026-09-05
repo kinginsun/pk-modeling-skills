@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Theophylline popPK — NONMEM × Monolix 双引擎建模报告</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+<style>
+:root {
+  --bg: #0d1117; --card: #161d2e; --border: #263049;
+  --text: #e6edf3; --muted: #8b98b8; --accent: #5b8ff9; --ok: #5ad8a6;
+  --warn: #f0b429; --bad: #e8684a; --nm: #5b8ff9; --mx: #f6bd16;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text);
+  font-family: "PingFang SC", -apple-system, "Segoe UI", sans-serif;
+  padding: 28px 32px 56px; max-width: 1500px; margin: 0 auto; }
+header { margin-bottom: 20px; }
+header h1 { font-size: 23px; font-weight: 650; letter-spacing: .3px; }
+header .sub { color: var(--muted); font-size: 13px; margin-top: 6px; line-height: 1.8; }
+code, .mono { font-family: "SF Mono", Menlo, Consolas, monospace; }
+header .sub code, .card code, td code, .note code, li code {
+  background: #1f2937; padding: 1px 6px; border-radius: 5px; font-size: 12px; color: #9ecbff; }
+nav { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0 22px; }
+nav a { color: var(--accent); text-decoration: none; font-size: 12.5px;
+  background: var(--card); border: 1px solid var(--border); padding: 5px 12px; border-radius: 8px; }
+nav a:hover { border-color: var(--accent); }
+h2.sec { font-size: 17px; font-weight: 640; margin: 34px 0 6px; padding-top: 10px;
+  border-top: 1px solid var(--border); }
+h2.sec .chip { font-size: 11px; font-weight: 500; color: var(--muted); margin-left: 10px;
+  border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; vertical-align: 2px; }
+.sec-desc { color: var(--muted); font-size: 12.5px; margin-bottom: 14px; line-height: 1.7; }
+.stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 16px; }
+.stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; }
+.stat .k { color: var(--muted); font-size: 11.5px; }
+.stat .v { font-size: 20px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.stat .v small { font-size: 11.5px; color: var(--muted); font-weight: 400; margin-left: 4px; }
+.stat.nm { border-left: 3px solid var(--nm); }
+.stat.mx { border-left: 3px solid var(--mx); }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px 18px 12px; margin-bottom: 16px; }
+.grid .card, .grid3 .card { margin-bottom: 0; }
+.card.wide { grid-column: 1 / -1; }
+.card h3 { font-size: 14px; font-weight: 600; }
+.card .desc { color: var(--muted); font-size: 12px; margin: 3px 0 8px; line-height: 1.7; }
+.chart { width: 100%; height: 320px; }
+.chart.tall { height: 420px; }
+.chart.xtall { height: 520px; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
+th, td { text-align: right; padding: 5px 10px; border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums; }
+th { color: var(--muted); font-weight: 500; }
+th:first-child, td:first-child { text-align: left; }
+.tag { display: inline-block; background: #1d3b2a; color: var(--ok); border-radius: 5px;
+  padding: 1px 7px; font-size: 11px; margin-left: 6px; }
+.tag.warn { background: #3b2f1d; color: var(--warn); }
+.tag.bad { background: #3b1d1d; color: var(--bad); }
+.tag.nm { background: #16294a; color: #8db4ff; }
+.tag.mx { background: #3b3016; color: #ffd666; }
+.sel { margin: 4px 0 8px; }
+.sel label { color: var(--muted); font-size: 12px; margin-right: 8px; }
+.sel select { background: #1f2937; color: var(--text); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 8px; font-size: 12px; }
+details { background: #10162480; border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 14px; margin: 10px 0; }
+details summary { cursor: pointer; font-size: 13px; color: var(--accent); font-weight: 550; }
+details pre { margin-top: 10px; overflow-x: auto; font-size: 11.5px; line-height: 1.6;
+  color: #c9d6ee; white-space: pre; }
+.eq { background: #10162480; border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: 10px; padding: 12px 16px; margin: 8px 0; font-size: 13px; line-height: 2.0;
+  font-family: "STIX Two Math", "SF Mono", Menlo, serif; overflow-x: auto; }
+.eq b { color: #9ecbff; font-family: inherit; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.note { color: var(--muted); font-size: 12px; line-height: 1.8; margin-top: 8px; }
+ul.tight { margin: 6px 0 6px 20px; font-size: 12.5px; color: var(--text); line-height: 1.9; }
+ul.tight li::marker { color: var(--muted); }
+footer { color: var(--muted); font-size: 12px; margin-top: 30px; line-height: 1.8;
+  border-top: 1px solid var(--border); padding-top: 14px; }
+.pill-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 2px; }
+.pill { font-size: 11.5px; color: var(--muted); border: 1px solid var(--border);
+  border-radius: 999px; padding: 2px 10px; }
+@media (max-width: 1100px) {
+  .stats { grid-template-columns: repeat(3, 1fr); }
+  .grid, .grid3, .two-col { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  body { padding: 18px 14px 40px; }
+  .stats { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Theophylline 群体药动学（popPK）建模报告 — NONMEM × Monolix 双引擎</h1>
+  <div class="sub">
+    数据：<code>theophylline_data.csv</code>（经典 theophylline 数据集 · 12 名受试者 ·
+    单次口服 4.02 mg/kg ·
+    120 个观测 · 体重 54.6–86.4 kg ·
+    男 7 / 女 5）。
+    剂量按 <b>mg/kg</b> 给药，因此 CL、V 均为每千克单位（L/h/kg、L/kg）。<br/>
+    引擎：<span class="tag nm">NONMEM 7.6 · FOCE-I · PsN execute</span>
+    <span class="tag mx">MonolixSuite 2024R1 · SAEM · --no-gui 无界面</span>
+    本页所有数值均直接来自仓库中已提交的结果文件（run1.ext / run1.cor / run1.phi / sdtab1 ·
+    populationParameters.txt / predictions.txt / LogLikelihood / FisherInformation），未重新运行估计。
+  </div>
+  <nav>
+    <a href="#model">模型与建模方法</a>
+    <a href="#nonmem">NONMEM 结果</a>
+    <a href="#monolix">Monolix 结果</a>
+    <a href="#cross">双引擎对比</a>
+    <a href="#repro">复现步骤</a>
+  </nav>
+</header>
+
+<!-- ============================ MODEL & METHOD ============================ -->
+<h2 class="sec" id="model">一、模型与建模方法</h2>
+<div class="sec-desc">
+  同一份数据、同一个结构模型（一级吸收单房室），分别用两种主流群体 PK 工具独立估计，
+  以验证工作流可复现、跨引擎结果一致。
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <h3>1.1 结构模型 — 一级吸收单房室（口服）</h3>
+    <div class="desc">NONMEM <code>ADVAN2 TRANS2</code>；Monolix 内置库模型 <code>lib:oral1_1cpt_kaVCl</code>。两者数学上完全等价。</div>
+    <div class="eq">
+      <b>房室：</b> 吸收室 (depot, CMT=1) → 中央室 (central, CMT=2)<br/>
+      <b>血药浓度：</b><br/>
+      &nbsp;&nbsp;C(t) = (F·D·k<sub>a</sub>) / (V·(k<sub>a</sub>−k)) · (e<sup>−k·t</sup> − e<sup>−k<sub>a</sub>·t</sup>)<br/>
+      <b>消除速率：</b> k = CL / V<br/>
+      <b>典型达峰时间：</b> t<sub>max</sub> = ln(k<sub>a</sub>/k) / (k<sub>a</sub>−k)
+      ≈ 1.97 h（NONMEM 典型值）
+    </div>
+    <div class="pill-row">
+      <span class="pill">ka — 一级吸收速率常数</span>
+      <span class="pill">V — 表观分布容积</span>
+      <span class="pill">CL — 表观清除率</span>
+      <span class="pill">F 并入剂量（mg/kg 给药）</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>1.2 统计模型 — 随机效应与残差误差</h3>
+    <div class="desc">个体间变异（IIV）用对数正态（指数）模型；残差误差用「比例 + 加性」组合模型。</div>
+    <div class="eq">
+      <b>NONMEM（含体重异速缩放协变量）：</b><br/>
+      &nbsp;&nbsp;KA<sub>i</sub> = θ<sub>KA</sub> · e<sup>η₁ᵢ</sup><br/>
+      &nbsp;&nbsp;CL<sub>i</sub> = θ<sub>CL</sub> · (WT/70)<sup>0.75</sup> · e<sup>η₂ᵢ</sup><br/>
+      &nbsp;&nbsp;V<sub>i</sub>&nbsp; = θ<sub>V</sub> · (WT/70)<sup>1.00</sup> · e<sup>η₃ᵢ</sup><br/>
+      &nbsp;&nbsp;η ~ N(0, Ω)，Ω = diag(ω²₁, ω²₂, ω²₃)<br/>
+      &nbsp;&nbsp;Y<sub>ij</sub> = IPRED·(1+ε₁) + ε₂，ε₁~N(0,σ²₁)，ε₂~N(0,σ²₂)<br/><br/>
+      <b>Monolix Base（无协变量，walkthrough 主运行）：</b><br/>
+      &nbsp;&nbsp;P<sub>i</sub> = P<sub>pop</sub> · e<sup>ηᵢ</sup>（logNormal，P ∈ {ka, V, Cl}）<br/>
+      &nbsp;&nbsp;combined1: sd = a + b·f（a 加性 mg/L，b 比例，c=1 固定）
+    </div>
+    <div class="note">
+      注意两处模型设定差异：① NONMEM 控制流固定了体重异速指数（0.75/1.0，参考 70 kg），
+      Monolix Base 不含协变量；② 误差模型参数化不同（NONMEM σ²₁ 为比例方差、σ²₂ 为加性方差；
+      Monolix combined1 为 a + b·f 的<b>标准差</b>形式）。因此 IIV / 残差项只做定性对比。
+    </div>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <h3>1.3 估计方法</h3>
+    <table>
+      <tr><th></th><th><span class="tag nm">NONMEM</span></th><th><span class="tag mx">Monolix</span></th></tr>
+      <tr><td>算法</td><td>FOCE-I（条件估计 + 交互）</td><td>SAEM（随机逼近 EM）</td></tr>
+      <tr><td>驱动</td><td>PsN <code>execute</code> → nmfe76</td><td><code>monolix.sh --no-gui</code></td></tr>
+      <tr><td>个体参数</td><td>POSTHOC 经验贝叶斯 (EBE)</td><td>条件分布 / 条件众数</td></tr>
+      <tr><td>标准误</td><td>协方差步（$COVARIANCE，PRINT=E 特征值）</td><td>线性化 Fisher 信息 (FIM)</td></tr>
+      <tr><td>似然值</td><td>OFV = −2LL（不含 N·log2π 常数 220.5）</td>
+        <td>重要性采样 −2LL（Monte-Carlo SE = 0.036）</td></tr>
+      <tr><td>收敛</td><td>223 次函数评估 · 3.2 位有效数字 · 0.11 s</td>
+        <td>探索 218 + 平滑 111 迭代（Autostop）· 1.4 s</td></tr>
+    </table>
+    <div class="note">
+      协变量建模（Monolix 侧）：COSSAC 策略在 ka / V / Cl 上筛选 WEIGHT、SEX，
+      停止准则为 LRT（0.05, 0.01）与相关阈值（0.3, 0.01），最终选出 <b>ka ~ WEIGHT</b>；
+      报告版本对体重做中心化 <code>ka ~ (WT−70)</code> 以保证 ka_pop 可解释（Wald p = 0.023）。
+      NONMEM 侧则直接采用文献常用的固定异速缩放（CL∝WT<sup>0.75</sup>, V∝WT<sup>1</sup>）。
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>1.4 数据准备与建模流程</h3>
+    <ul class="tight">
+      <li><b>数据转换</b>（<code>prep_data.R</code>）：Monolix 长表 → NONMEM 事件记录格式
+        （剂量行 EVID=1/CMT=1/MDV=1，观测行 EVID=0/CMT=2/MDV=0，缺失用 <code>.</code>）。
+        踩坑：<code>read.csv</code> 默认不把 <code>"."</code> 当缺失，需 <code>na.strings=c("NA",".")</code>。</li>
+      <li><b>控制流编写</b>：按 easy-nonmem skill 的 bundled 参考（ADVAN 目录 / $INPUT 规范）
+        确认一级吸收单房室 = ADVAN2 TRANS2，观测默认中央室。</li>
+      <li><b>运行</b>：<code>execute run1.mod -directory=theo_run -threads=4</code>；
+        Monolix 侧用 x86shim 强制插件以 x86_64 编译（Apple Silicon）。</li>
+      <li><b>诊断</b>（<code>gof_plots.R</code>）：读取 $TABLE 输出 sdtab1 画 GOF；
+        踩坑：文件首行是 <code>TABLE NO. 1</code> 横幅，需 <code>skip=1</code>，剂量行 DV 为 NA 需剔除。</li>
+      <li><b>验收标准</b>：MINIMIZATION SUCCESSFUL、协方差步完成、ETABAR≈0、
+        收缩率 &lt;20–30%、GOF 无系统性趋势。</li>
+    </ul>
+    <details>
+      <summary>run1.mod — NONMEM 控制流（点击查看全文）</summary>
+      <pre id="srcMod" class="mono"></pre>
+    </details>
+    <details>
+      <summary>theophylline_project.mlxtran — Monolix Base 项目</summary>
+      <pre id="srcMlx" class="mono"></pre>
+    </details>
+    <details>
+      <summary>theophylline_final_ka_cWT.mlxtran — Monolix 最终协变量模型</summary>
+      <pre id="srcMlxFinal" class="mono"></pre>
+    </details>
+    <details>
+      <summary>prep_data.R / gof_plots.R — 数据准备与 GOF 绘图脚本</summary>
+      <pre id="srcPrep" class="mono"></pre>
+      <pre id="srcGof" class="mono"></pre>
+    </details>
+  </div>
+</div>
+
+<!-- ============================ NONMEM ============================ -->
+<h2 class="sec" id="nonmem">二、NONMEM 结果 <span class="chip">FOCE-I · ADVAN2 TRANS2 · 全异速体重缩放</span></h2>
+<div class="sec-desc">
+  <code>run1.lst</code>：MINIMIZATION SUCCESSFUL，协方差步完成，相关矩阵最小特征值
+  1.11e-03（&gt;0，无病态方向）。ETABAR 三项 p 值均 &gt;0.89 → η 均值与 0 无显著差异。
+</div>
+<div class="stats">
+  <div class="stat nm"><div class="k">OFV (FOCE-I)</div>
+    <div class="v">134.834</div></div>
+  <div class="stat nm"><div class="k">KA</div>
+    <div class="v">1.556<small>h⁻¹</small></div></div>
+  <div class="stat nm"><div class="k">CL</div>
+    <div class="v">0.0406<small>L/h/kg</small></div></div>
+  <div class="stat nm"><div class="k">V</div>
+    <div class="v">0.469<small>L/kg</small></div></div>
+  <div class="stat nm"><div class="k">t½ = ln2·V/CL</div>
+    <div class="v">8.01<small>h</small></div></div>
+  <div class="stat nm"><div class="k">最小化 / 协方差</div>
+    <div class="v" style="font-size:15px">成功
+      <small>223 次函数评估 · 0.11s</small></div></div></div>
+
+<div class="grid">
+  <div class="card">
+    <h3>N1 · 收敛历程（run1.ext）</h3>
+    <div class="desc">OFV 从初值 185.9 降至 134.834，第 23 次迭代达到 3 位有效数字收敛。</div>
+    <div class="chart" id="nmConv"></div>
+  </div>
+  <div class="card">
+    <h3>N2 · 固定效应 θ — 估计值与 95% CI</h3>
+    <div class="desc">对数轴森林图；CI 由协方差步 SE 计算（θ 为正值有界参数，CI 取对数尺度回变换）。</div>
+    <div class="chart" id="nmForest"></div>
+  </div>
+</div>
+
+<div class="card wide" style="margin-top:16px">
+  <h3>N3 · 个体拟合 — 观测 (DV) vs 个体预测 (IPRED)</h3>
+  <div class="desc">
+    白色散点 = 实测浓度；绿线 = NONMEM IPRED（POSTHOC EBE）；黄色虚线 = 由个体参数
+    (KA, CL, V，含体重缩放) 解析重算的密集模型曲线（与 IPRED 重合即验证 ADVAN2 解正确）；
+    紫点线 = 群体预测 PRED。可选单个受试者或 12 人叠加。
+  </div>
+  <div class="sel"><label>受试者</label><select id="nmSubjSel"></select></div>
+  <div class="chart tall" id="nmFits"></div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>N4 · GOF — DV vs IPRED / PRED</h3>
+    <div class="desc">点贴近 y=x 对角线；IPRED（绿）比 PRED（紫）显著收紧 → IIV 被随机效应正确吸收。</div>
+    <div class="chart" id="nmGof"></div>
+  </div>
+  <div class="card">
+    <h3>N5 · CWRES 诊断</h3>
+    <div class="desc">条件加权残差 vs 时间 / vs PRED：围绕 0（虚线）随机散布，无漏斗形或趋势 → 结构模型与组合误差设定合理。±2 参考线内占绝大多数。</div>
+    <div class="chart" id="nmCwres"></div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>N6 · 个体随机效应 η（run1.phi，POSTHOC EBE）</h3>
+    <div class="desc">柱高 = η 点估计；悬停可见后验标准差 ETC。ID9 的 η_KA≈+1.38 最大（吸收快个体）。</div>
+    <div class="chart" id="nmEta"></div>
+  </div>
+  <div class="card">
+    <h3>N7 · 参数估计相关矩阵（run1.cor）</h3>
+    <div class="desc">θ_CL×θ_V 相关 0.86 偏高但可接受（单房室口服经典相关对）；未出现 |r|&gt;0.95 的过参数化信号。</div>
+    <div class="chart" id="nmCorr"></div>
+  </div>
+</div>
+
+<div class="two-col" style="margin-top:16px">
+  <div class="card">
+    <h3>N8 · 最终参数估计一览</h3>
+    <table id="tabNm"></table>
+    <div class="note">
+      ω² → CV%：IIV_KA = 73%、IIV_CL = 31%、IIV_V = 23%（√(e^ω²−1)）。
+      残差：比例 7.4% CV + 加性 0.596 mg/L。
+      70 kg 典型个体：CL = 2.84 L/h，V = 32.8 L，t½ = 8.01 h —
+      与茶碱文献值（CL≈0.04 L/h/kg，t½≈8 h）一致。
+    </div>
+  </div>
+  <div class="card">
+    <h3>N9 · ETABAR 与收缩率（run1.lst）</h3>
+    <table id="tabNmShrink"></table>
+    <div class="note">
+      所有 η 收缩率（SD 尺度 6.9/6.2/6.8%）
+      远低于 20–30% 警戒线；相对信息量 ≈ 85–89% → 每人 10 点的采样设计足以支撑 EBE 诊断。
+    </div>
+  </div>
+</div>
+
+<!-- ============================ MONOLIX ============================ -->
+<h2 class="sec" id="monolix">三、Monolix 结果 <span class="chip">SAEM · oral1_1cpt_kaVCl · combined1 · COSSAC 协变量筛选</span></h2>
+<div class="sec-desc">
+  Base 模型（无协变量）为 walkthrough 主运行；随后 COSSAC 筛选出 ka~WEIGHT，
+  并给出中心化最终模型与异速生长对照模型。似然值均由重要性采样（IS）计算。
+</div>
+<div class="stats">
+  <div class="stat mx"><div class="k">OFV (重要性采样 −2LL)</div>
+    <div class="v">341.49<small>SE 0.036</small></div></div>
+  <div class="stat mx"><div class="k">ka_pop</div>
+    <div class="v">1.554<small>h⁻¹</small></div></div>
+  <div class="stat mx"><div class="k">Cl_pop</div>
+    <div class="v">0.0398<small>L/h/kg</small></div></div>
+  <div class="stat mx"><div class="k">V_pop</div>
+    <div class="v">0.459<small>L/kg</small></div></div>
+  <div class="stat mx"><div class="k">BIC / AIC</div>
+    <div class="v" style="font-size:15px">361.4 / 357.5</div></div>
+  <div class="stat mx"><div class="k">SAEM 迭代</div>
+    <div class="v" style="font-size:15px">218+111
+      <small>Autostop · 1.4s</small></div></div></div>
+
+<div class="grid">
+  <div class="card">
+    <h3>M1 · Base 群体参数 — 估计值与 95% CI</h3>
+    <div class="desc">线性化 FIM 的 SE；对数轴森林图。V_pop、Cl_pop 精估（RSE&lt;9%），ka_pop 因吸收相点数少 RSE≈21%。</div>
+    <div class="chart" id="mxForest"></div>
+  </div>
+  <div class="card">
+    <h3>M2 · GOF — Obs vs indivPred / popPred</h3>
+    <div class="desc">SAEM 条件估计的个体预测贴近 y=x；群体预测的分散体现 IIV（ω_ka≈73% CV 最大）。</div>
+    <div class="chart" id="mxGof"></div>
+  </div>
+</div>
+
+<div class="card wide" style="margin-top:16px">
+  <h3>M3 · 个体拟合 — 观测 vs SAEM 个体预测</h3>
+  <div class="desc">黄色虚线 = 用 SAEM 个体参数 (ka, V, Cl) 解析重算的密集曲线；绿线 = indivPred_SAEM；紫点线 = popPred。</div>
+  <div class="sel"><label>受试者</label><select id="mxSubjSel"></select></div>
+  <div class="chart tall" id="mxFits"></div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>M4 · IWRES vs 时间</h3>
+    <div class="desc">个体加权残差围绕 0 随机分布、无时间趋势 → combined1(a,b) 误差模型合适。</div>
+    <div class="chart" id="mxIwres"></div>
+  </div>
+  <div class="card">
+    <h3>M5 · 个体随机效应 η（条件估计）</h3>
+    <div class="desc">η_ka 跨度最大（ID9 ≈ +1.45，与 NONMEM 同一受试者、同一方向）；η_V 收缩 13.9%。</div>
+    <div class="chart" id="mxEta"></div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>M6 · 参数相关矩阵（线性化 FIM）</h3>
+    <div class="desc">a 与 b 强负相关（r≈−0.90）是 combined 误差的固有特征；固定效应之间相关温和。</div>
+    <div class="chart tall" id="mxCorr"></div>
+  </div>
+  <div class="card">
+    <h3>M7 · COSSAC 协变量搜索（线性化 −2LL）</h3>
+    <div class="desc">
+      M1 无协变量 → M2 加 V~WEIGHT → M3 加 ka~WEIGHT → M4 两者 → M5 ka~WEIGHT+V~SEX。
+      Best = <b>M3（ka~WEIGHT）</b>：M4 的 −2LL 更低但 BICc 回升，按停止准则不再加协变量；SEX 未入选。
+    </div>
+    <div class="chart tall" id="mxMb"></div>
+  </div>
+</div>
+
+<div class="card wide" style="margin-top:16px">
+  <h3>M8 · 模型变体比较（重要性采样判据）</h3>
+  <div class="desc">
+    四个已运行模型：Base、ka~WEIGHT（未中心化）、ka~(WT−70)（最终报告模型）、V,Cl~log(WT/70) 自由指数（异速对照）。
+    n=12 时 BICc 惩罚重，异速模型未优于 Base；加 ka 协变量的两个模型 OFV/AIC/BIC/BICc 全面占优。
+  </div>
+  <div class="two-col">
+    <div class="chart" id="mxModels"></div>
+    <div>
+      <h3 style="font-size:13px;margin-top:4px">最终模型 ka ~ (WT−70) 参数表</h3>
+      <table id="tabMxFinal"></table>
+      <div class="note">
+        β_ka_cWEIGHT = 0.0422（每 +1 kg，ka ×e<sup>0.042</sup>≈1.043），Wald p = 0.0228，t-Test p = 0.0389。
+        未中心化版本 ka_pop 的 RSE&gt;500%（外推至 WT=0），故报告用中心化版本。
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <h3>M9 · Base 模型完整参数表</h3>
+    <table id="tabMx"></table>
+  </div>
+  <div class="card">
+    <h3>M10 · η 收缩率</h3>
+    <table id="tabMxShrink"></table>
+    <div class="note">
+      V 的收缩率 13.9% 与 NONMEM 侧（6.8%）一致；
+      ka 条件均值出现 −0.65% 的轻微负收缩，是小样本条件抽样波动的正常现象（mode 收缩 +2.6%）。
+    </div>
+  </div>
+</div>
+
+<!-- ============================ CROSS ============================ -->
+<h2 class="sec" id="cross">四、双引擎交叉验证 <span class="chip">NONMEM FOCE-I × Monolix SAEM · 同一数据</span></h2>
+<div class="sec-desc">
+  结构参数三个 θ 的相对差均 ≤2.2%，且 95% CI 大幅重叠；120 个匹配时间点的个体预测
+  RMSE 仅 0.0729 mg/L；η（EBE）逐人方向一致。这是两个独立实现、独立算法之间期望达到的可复现性水平。
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>X1 · 典型参数 — 点估计 + 95% CI 对比</h3>
+    <div class="desc">上排（蓝）NONMEM θ，下排（黄）Monolix pop；对数轴。三对 CI 均互相覆盖对方点估计。</div>
+    <div class="chart" id="xTyp"></div>
+  </div>
+  <div class="card">
+    <h3>X2 · 相对差 (NM−MLX)/MLX</h3>
+    <div class="desc">
+      KA +0.1% ·
+      CL +1.9% ·
+      V +2.2% —
+      全部在 ±2.2% 内（绿色 ≤2%）。
+    </div>
+    <div class="chart" id="xDiff"></div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>X3 · 个体预测逐点对比（同 ID 同时间）</h3>
+    <div class="desc">NONMEM IPRED（POSTHOC）vs Monolix indivPred（SAEM 条件估计），120/120 点精确匹配。</div>
+    <div class="chart" id="xIpred"></div>
+  </div>
+  <div class="card">
+    <h3>X4 · 随机效应 η 对比（EBE vs 条件估计）</h3>
+    <div class="desc">每个点是一名受试者；两引擎 η 沿 y=x 同方向、同量级。ID9 在两侧都是 η_KA 最大的离群个体。</div>
+    <div class="chart" id="xEbe"></div>
+  </div>
+</div>
+
+<div class="card wide" style="margin-top:16px">
+  <h3>X5 · 个体参数 vs 体重（模型设定差异的直接体现）</h3>
+  <div class="desc">
+    NONMEM（圆点）显式含 WT<sup>0.75</sup>/WT<sup>1</sup> 缩放 → 个体 CL、V 随体重呈上升趋势；
+    Monolix Base（三角）无协变量 → 与体重无关的随机散布。这解释了两侧 IIV 的差异
+    （NONMEM 的 IIV_CL=31% 已扣除体重效应；Monolix 的 ω_Cl=27% CV 仍含体重变异）。
+  </div>
+  <div class="chart" id="xCov"></div>
+</div>
+
+<div class="card wide">
+  <h3>X6 · 汇总对照表</h3>
+  <table id="tabCross"></table>
+</div>
+
+<!-- ============================ REPRO ============================ -->
+<h2 class="sec" id="repro">五、复现步骤</h2>
+<div class="two-col">
+  <div class="card">
+    <h3>NONMEM（需 NONMEM 7.6 + PsN）</h3>
+    <div class="eq mono" style="font-family:Menlo,monospace;font-size:12px">
+cd examples/nonmem-theophylline<br/>
+Rscript prep_data.R<br/>
+execute run1.mod -directory=theo_run -threads=4<br/>
+Rscript gof_plots.R
+    </div>
+  </div>
+  <div class="card">
+    <h3>Monolix（需 MonolixSuite 2024R1，Apple Silicon 加 x86shim）</h3>
+    <div class="eq mono" style="font-family:Menlo,monospace;font-size:12px">
+cd examples/monolix-theophylline<br/>
+PATH="$PWD/../../skills/monolix-cli/x86shim:$PATH" \<br/>
+&nbsp;&nbsp;/Applications/MonolixSuite2024R1.app/Contents/Resources/\<br/>
+&nbsp;&nbsp;monolixSuite/bin/monolix.sh --no-gui \<br/>
+&nbsp;&nbsp;-p "$PWD/theophylline_project.mlxtran" \<br/>
+&nbsp;&nbsp;-o "$PWD/theophylline_walkthrough" --mode basic
+    </div>
+  </div>
+</div>
+
+<footer>
+  报告由 <code>scripts/build_theophylline_report.py</code> 从仓库内已提交的结果文件自动生成 ·
+  图表：Apache ECharts 6（CDN）· 数据文件：
+  <code>examples/nonmem-theophylline/</code>（run1.mod / run1.lst / run1.ext / run1.cor / run1.phi / sdtab1）与
+  <code>examples/monolix-theophylline/theophylline_walkthrough/</code>（populationParameters / predictions /
+  LogLikelihood / FisherInformation / IndividualParameters）·
+  叙述性 walkthrough 见 <code>docs/walkthrough-theophylline.md</code>。
+</footer>
+
+<script>
+const D = {"meta":{"drug":"Theophylline","dataset":"经典 theophylline 数据集（Monolix 内置格式）","dose":"单次口服 4.02 mg/kg","dose_amt":"4.02 mg/kg","n_id":12,"n_obs":120,"n_dose":12,"wt_range":[54.6,86.4],"sex_counts":{"M":7,"F":5},"generated_from":"committed NONMEM + Monolix result files (no re-run)"},"nonmem":{"engine":"NONMEM 7.6.0 (nm760)","algorithm":"FOCE-I (First Order Conditional Estimation with Interaction)","version":"7.6.0","n_id":12,"n_obs":120,"n_dose":12,"ofv":134.8345,"ofv_with_const":355.3798,"obj_const":220.5452,"nfe":223,"sigdig":3.2,"minimization_successful":true,"covariance_completed":true,"t_est":0.11,"t_cov":0.09,"eigen_min":0.001113,"eigen_max":3.39402,"iters":[{"iter":0,"obj":185.90422485279768},{"iter":5,"obj":146.63656987880304},{"iter":10,"obj":138.67507017556574},{"iter":15,"obj":134.96452016129072},{"iter":20,"obj":134.8367315495553},{"iter":23,"obj":134.8345288952678}],"params":[{"name":"KA","label":"KA (THETA1)","unit":"1/h","est":1.55604,"se":0.30471,"rse":19.58,"lo":1.06007,"hi":2.28406},{"name":"CL","label":"CL (THETA2)","unit":"L/h/kg","est":0.04061,"se":0.00371,"rse":9.13,"lo":0.03395,"hi":0.04856},{"name":"V","label":"V (THETA3)","unit":"L/kg","est":0.4691,"se":0.03018,"rse":6.43,"lo":0.41351,"hi":0.53215},{"name":"OM11","label":"IIV on KA","unit":"% (SD)","est":65.6464,"se":null,"rse":53.47,"lo":0.0,"hi":93.94646},{"name":"OM22","label":"IIV on CL","unit":"% (SD)","est":30.6472,"se":null,"rse":57.19,"lo":0.0,"hi":44.63282},{"name":"OM33","label":"IIV on V","unit":"% (SD)","est":22.5434,"se":null,"rse":31.87,"lo":13.81221,"hi":28.73383},{"name":"SG11","label":"Residual proportional","unit":"% (CV)","est":7.36043,"se":null,"rse":90.2,"lo":0.0,"hi":12.24542},{"name":"SG22","label":"Residual additive","unit":"mg/L","est":0.59631,"se":null,"rse":42.81,"lo":0.23928,"hi":0.80865}],"raw":{"ka":1.55604,"cl":0.04061,"v":0.4691,"om_ka":0.43095,"om_cl":0.09393,"om_v":0.05082,"sg_prop":0.005418,"sg_add":0.355589,"sd_ka":0.65646,"sd_cl":0.30647,"sd_v":0.22543,"cv_ka":73.4,"cv_cl":31.38,"cv_v":22.83,"res_prop_cv":7.36,"res_add_sd":0.5963,"k":0.086565,"t_half":8.007,"cl_70":2.8425,"v_70":32.837,"t_max_typ":1.966},"etabar":[-0.01274,0.00272,-0.00772],"etabar_se":[0.17646,0.08296,0.0606],"etabar_p":[0.9424,0.9739,0.8986],"eta_shrink_sd":[6.86,6.23,6.81],"eta_shrink_vr":[13.26,12.07,13.16],"ebv_shrink_sd":[5.0,5.96,7.0],"eps_shrink_sd":[14.12,14.12],"rel_info":[89.41,87.86,85.44],"phi":[{"id":1,"eta1":0.08161,"eta2":-0.73701,"eta3":-0.36502,"sd1":0.16836,"sd2":0.10825,"sd3":0.06441,"obj":18.30646},{"id":2,"eta1":0.20599,"eta2":0.06414,"eta3":-0.09027,"sd1":0.18788,"sd2":0.09643,"sd3":0.07891,"obj":20.05788},{"id":3,"eta1":0.39388,"eta2":-0.01018,"eta3":0.01413,"sd1":0.19683,"sd2":0.10249,"sd3":0.07275,"obj":2.6439},{"id":4,"eta1":-0.29339,"eta2":-0.1072,"eta3":-0.11774,"sd1":0.17817,"sd2":0.10446,"sd3":0.08364,"obj":13.22952},{"id":5,"eta1":-0.14949,"eta2":0.25679,"eta3":0.26267,"sd1":0.15975,"sd2":0.08779,"sd3":0.07513,"obj":27.3639},{"id":6,"eta1":-0.26258,"eta2":0.09802,"eta3":-0.01312,"sd1":0.22305,"sd2":0.12417,"sd3":0.0997,"obj":4.21977},{"id":7,"eta1":-0.78342,"eta2":0.25821,"eta3":0.17993,"sd1":0.20631,"sd2":0.11478,"sd3":0.10902,"obj":4.75394},{"id":8,"eta1":-0.11139,"eta2":0.11339,"eta3":0.07517,"sd1":0.19539,"sd2":0.10999,"sd3":0.08712,"obj":7.9492},{"id":9,"eta1":1.38308,"eta2":-0.33254,"eta3":-0.42864,"sd1":0.33368,"sd2":0.10668,"sd3":0.06282,"obj":14.14802},{"id":10,"eta1":-0.77031,"eta2":-0.07613,"eta3":0.12385,"sd1":0.1601,"sd2":0.09947,"sd3":0.08436,"obj":6.60646},{"id":11,"eta1":0.76937,"eta2":0.38126,"eta3":0.26048,"sd1":0.21965,"sd2":0.10188,"sd3":0.07384,"obj":5.85392},{"id":12,"eta1":-0.61626,"eta2":0.12385,"eta3":0.00589,"sd1":0.16894,"sd2":0.08858,"sd3":0.08999,"obj":9.70157}],"subjects":[{"id":1,"wt":79.6,"sex":"M","ka":1.6883,"cl":0.0214,"v":0.3703},{"id":2,"wt":72.4,"sex":"M","ka":1.912,"cl":0.0444,"v":0.4433},{"id":3,"wt":70.5,"sex":"M","ka":2.3072,"cl":0.0404,"v":0.4792},{"id":4,"wt":72.7,"sex":"M","ka":1.1604,"cl":0.0375,"v":0.4331},{"id":5,"wt":54.6,"sex":"F","ka":1.34,"cl":0.0436,"v":0.4758},{"id":6,"wt":80.0,"sex":"M","ka":1.1967,"cl":0.0495,"v":0.5291},{"id":7,"wt":64.6,"sex":"F","ka":0.7109,"cl":0.0495,"v":0.5182},{"id":8,"wt":70.5,"sex":"M","ka":1.392,"cl":0.0457,"v":0.5093},{"id":9,"wt":86.4,"sex":"M","ka":6.2042,"cl":0.0341,"v":0.3772},{"id":10,"wt":58.2,"sex":"F","ka":0.7202,"cl":0.0328,"v":0.4415},{"id":11,"wt":65.0,"sex":"F","ka":3.3586,"cl":0.0562,"v":0.5652},{"id":12,"wt":60.5,"sex":"F","ka":0.8402,"cl":0.0412,"v":0.4078}],"by_id":{"1":[[0.25,2.84,3.7092,2.4018,-1.2],[0.57,6.57,6.5827,4.3126,0.246],[1.12,10.5,8.8398,5.8572,2.312],[2.02,9.66,9.6311,6.3808,0.611],[3.82,8.58,8.9964,5.7618,0.249],[5.1,8.36,8.3695,5.1914,0.767],[7.03,7.47,7.4879,4.4182,0.829],[9.05,6.89,6.663,3.7301,1.198],[12.12,5.94,5.5799,2.8837,1.447],[24.37,3.28,2.7491,1.0327,1.699]],"2":[[0.27,1.72,3.9441,3.0727,-3.105],[0.52,7.91,6.067,4.9057,2.768],[1.0,8.31,7.9279,6.7838,0.711],[1.92,8.33,8.375,7.656,0.083],[3.5,6.85,7.3637,7.0661,-0.607],[5.02,6.08,6.3341,6.2342,-0.36],[7.03,5.4,5.1795,5.2493,0.239],[9.0,4.55,4.252,4.4328,0.341],[12.0,3.01,3.1483,3.4264,-0.339],[24.3,0.9,0.9183,1.1921,-0.122]],"3":[[0.27,4.4,4.3285,3.2484,0.374],[0.58,6.9,6.77,5.5386,0.398],[1.02,8.2,8.071,7.2194,0.225],[2.02,7.8,8.1826,8.0881,-0.559],[3.62,7.5,7.2285,7.3888,0.223],[5.08,6.2,6.3931,6.5413,-0.344],[7.07,5.3,5.4054,5.5109,-0.204],[9.0,4.9,4.5934,4.6645,0.415],[12.15,3.7,3.5218,3.553,0.271],[24.17,1.05,1.2779,1.2575,-0.347]],"4":[[0.35,1.89,3.3368,3.7312,-2.402],[0.6,4.6,4.9505,5.3212,-0.672],[1.07,8.6,6.8352,6.9118,2.167],[2.13,8.38,8.202,7.615,0.339],[3.5,7.54,7.9181,7.0387,-0.195],[5.02,6.88,7.0743,6.2108,0.02],[7.02,5.78,5.9726,5.2351,-0.043],[9.02,5.33,5.0245,4.4102,0.599],[11.98,4.19,3.888,3.4216,0.558],[24.65,1.15,1.2968,1.1545,-0.248]],"5":[[0.3,2.02,4.0175,5.8857,-3.17],[0.52,5.63,6.0189,8.6476,-0.795],[1.0,11.4,8.601,11.934,2.808],[2.02,9.33,10.104,13.398,-1.306],[3.5,8.74,9.4728,12.258,-1.275],[5.02,7.56,8.3317,10.714,-1.336],[7.02,7.09,6.9495,8.9166,-0.201],[9.1,5.9,5.7451,7.3621,-0.117],[12.0,4.37,4.4052,5.6363,-0.321],[24.35,1.57,1.4217,1.8069,0.136]],"6":[[0.27,1.29,2.0597,2.5287,-1.408],[0.58,3.08,3.6711,4.3137,-1.121],[1.15,6.44,5.2932,5.8443,1.421],[2.03,6.32,6.0597,6.318,0.268],[3.57,5.53,5.7577,5.8176,-0.314],[5.0,4.94,5.1161,5.185,-0.264],[7.0,4.02,4.2582,4.3882,-0.411],[9.22,3.46,3.4609,3.644,-0.097],[12.1,2.78,2.6435,2.8633,0.093],[23.85,0.92,0.8805,1.0706,-0.045]],"7":[[0.25,0.85,1.5362,3.6419,-1.457],[0.5,2.35,2.786,6.0307,-1.237],[1.02,5.02,4.6661,8.5989,-0.25],[2.02,6.58,6.473,9.6185,-0.618],[3.48,7.09,6.9839,8.8607,-0.392],[5.0,6.66,6.5287,7.7896,-0.181],[6.98,5.25,5.5877,6.5439,-0.725],[9.0,4.39,4.6526,5.4748,-0.619],[12.05,3.53,3.4884,4.182,-0.172],[24.22,1.15,1.0916,1.4275,-0.066]],"8":[[0.25,3.05,2.5832,3.0548,0.679],[0.52,3.05,4.4637,5.1859,-2.193],[0.98,7.31,6.2765,7.1183,1.21],[2.02,7.56,7.359,8.0881,0.07],[3.53,6.59,6.8551,7.4413,-0.515],[5.05,5.88,6.0332,6.5581,-0.375],[7.15,4.73,5.003,5.4729,-0.549],[9.07,4.57,4.2112,4.6364,0.385],[12.1,3.0,3.2083,3.5684,-0.455],[24.12,1.25,1.0905,1.2629,0.2]],"9":[[0.3,7.37,6.8209,1.9708,2.411],[0.63,9.03,7.7117,3.2466,2.433],[1.05,7.14,7.5731,4.0822,0.005],[2.02,6.33,6.9486,4.5444,-0.309],[3.53,5.66,6.0619,4.2066,-0.085],[5.02,5.67,5.2979,3.7404,0.953],[7.17,4.24,4.3619,3.1368,0.215],[8.8,4.11,3.7642,2.7438,0.894],[11.6,3.16,2.9224,2.1802,0.698],[24.43,1.12,0.9161,0.7601,0.494]],"10":[[0.37,2.89,2.8732,6.0604,-0.34],[0.77,5.22,5.1414,9.4461,-0.453],[1.02,6.41,6.2148,10.589,-0.359],[2.05,7.83,8.7568,11.818,-1.63],[3.55,10.21,9.5958,10.794,0.351],[5.05,9.18,9.1828,9.4679,-0.116],[7.08,8.02,8.1282,7.8811,-0.098],[9.38,7.14,6.9079,6.398,0.397],[12.1,5.68,5.656,4.9999,0.168],[23.7,2.42,2.392,1.7469,0.186]],"11":[[0.25,4.86,4.8761,3.5977,0.415],[0.5,7.24,6.8621,5.9575,0.592],[0.98,8.0,7.8034,8.3763,-0.218],[1.98,6.81,7.3548,9.5055,-1.388],[3.6,5.87,6.2697,8.6725,-1.19],[5.02,5.22,5.4436,7.6859,-0.909],[7.03,4.45,4.4568,6.4413,-0.527],[9.03,3.62,3.6526,5.4,-0.494],[12.12,2.69,2.6857,4.112,-0.341],[24.08,0.86,0.817,1.4322,-0.057]],"12":[[0.25,1.25,2.4302,4.1629,-2.221],[0.5,3.96,4.3394,6.8918,-1.065],[1.0,7.82,6.9765,9.7548,0.475],[2.0,9.72,9.3174,10.975,0.033],[3.52,9.75,9.584,10.056,0.073],[5.07,8.57,8.6424,8.7948,-0.079],[7.07,6.59,7.193,7.3533,-0.771],[9.03,6.11,5.9253,6.167,0.171],[12.05,4.57,4.3723,4.7024,0.133],[24.15,1.17,1.288,1.5868,-0.371]]},"gof":[[3.7092,2.4018,2.84,-1.2,0.25,1],[6.5827,4.3126,6.57,0.246,0.57,1],[8.8398,5.8572,10.5,2.312,1.12,1],[9.6311,6.3808,9.66,0.611,2.02,1],[8.9964,5.7618,8.58,0.249,3.82,1],[8.3695,5.1914,8.36,0.767,5.1,1],[7.4879,4.4182,7.47,0.829,7.03,1],[6.663,3.7301,6.89,1.198,9.05,1],[5.5799,2.8837,5.94,1.447,12.12,1],[2.7491,1.0327,3.28,1.699,24.37,1],[3.9441,3.0727,1.72,-3.105,0.27,2],[6.067,4.9057,7.91,2.768,0.52,2],[7.9279,6.7838,8.31,0.711,1.0,2],[8.375,7.656,8.33,0.083,1.92,2],[7.3637,7.0661,6.85,-0.607,3.5,2],[6.3341,6.2342,6.08,-0.36,5.02,2],[5.1795,5.2493,5.4,0.239,7.03,2],[4.252,4.4328,4.55,0.341,9.0,2],[3.1483,3.4264,3.01,-0.339,12.0,2],[0.9183,1.1921,0.9,-0.122,24.3,2],[4.3285,3.2484,4.4,0.374,0.27,3],[6.77,5.5386,6.9,0.398,0.58,3],[8.071,7.2194,8.2,0.225,1.02,3],[8.1826,8.0881,7.8,-0.559,2.02,3],[7.2285,7.3888,7.5,0.223,3.62,3],[6.3931,6.5413,6.2,-0.344,5.08,3],[5.4054,5.5109,5.3,-0.204,7.07,3],[4.5934,4.6645,4.9,0.415,9.0,3],[3.5218,3.553,3.7,0.271,12.15,3],[1.2779,1.2575,1.05,-0.347,24.17,3],[3.3368,3.7312,1.89,-2.402,0.35,4],[4.9505,5.3212,4.6,-0.672,0.6,4],[6.8352,6.9118,8.6,2.167,1.07,4],[8.202,7.615,8.38,0.339,2.13,4],[7.9181,7.0387,7.54,-0.195,3.5,4],[7.0743,6.2108,6.88,0.02,5.02,4],[5.9726,5.2351,5.78,-0.043,7.02,4],[5.0245,4.4102,5.33,0.599,9.02,4],[3.888,3.4216,4.19,0.558,11.98,4],[1.2968,1.1545,1.15,-0.248,24.65,4],[4.0175,5.8857,2.02,-3.17,0.3,5],[6.0189,8.6476,5.63,-0.795,0.52,5],[8.601,11.934,11.4,2.808,1.0,5],[10.104,13.398,9.33,-1.306,2.02,5],[9.4728,12.258,8.74,-1.275,3.5,5],[8.3317,10.714,7.56,-1.336,5.02,5],[6.9495,8.9166,7.09,-0.201,7.02,5],[5.7451,7.3621,5.9,-0.117,9.1,5],[4.4052,5.6363,4.37,-0.321,12.0,5],[1.4217,1.8069,1.57,0.136,24.35,5],[2.0597,2.5287,1.29,-1.408,0.27,6],[3.6711,4.3137,3.08,-1.121,0.58,6],[5.2932,5.8443,6.44,1.421,1.15,6],[6.0597,6.318,6.32,0.268,2.03,6],[5.7577,5.8176,5.53,-0.314,3.57,6],[5.1161,5.185,4.94,-0.264,5.0,6],[4.2582,4.3882,4.02,-0.411,7.0,6],[3.4609,3.644,3.46,-0.097,9.22,6],[2.6435,2.8633,2.78,0.093,12.1,6],[0.8805,1.0706,0.92,-0.045,23.85,6],[1.5362,3.6419,0.85,-1.457,0.25,7],[2.786,6.0307,2.35,-1.237,0.5,7],[4.6661,8.5989,5.02,-0.25,1.02,7],[6.473,9.6185,6.58,-0.618,2.02,7],[6.9839,8.8607,7.09,-0.392,3.48,7],[6.5287,7.7896,6.66,-0.181,5.0,7],[5.5877,6.5439,5.25,-0.725,6.98,7],[4.6526,5.4748,4.39,-0.619,9.0,7],[3.4884,4.182,3.53,-0.172,12.05,7],[1.0916,1.4275,1.15,-0.066,24.22,7],[2.5832,3.0548,3.05,0.679,0.25,8],[4.4637,5.1859,3.05,-2.193,0.52,8],[6.2765,7.1183,7.31,1.21,0.98,8],[7.359,8.0881,7.56,0.07,2.02,8],[6.8551,7.4413,6.59,-0.515,3.53,8],[6.0332,6.5581,5.88,-0.375,5.05,8],[5.003,5.4729,4.73,-0.549,7.15,8],[4.2112,4.6364,4.57,0.385,9.07,8],[3.2083,3.5684,3.0,-0.455,12.1,8],[1.0905,1.2629,1.25,0.2,24.12,8],[6.8209,1.9708,7.37,2.411,0.3,9],[7.7117,3.2466,9.03,2.433,0.63,9],[7.5731,4.0822,7.14,0.005,1.05,9],[6.9486,4.5444,6.33,-0.309,2.02,9],[6.0619,4.2066,5.66,-0.085,3.53,9],[5.2979,3.7404,5.67,0.953,5.02,9],[4.3619,3.1368,4.24,0.215,7.17,9],[3.7642,2.7438,4.11,0.894,8.8,9],[2.9224,2.1802,3.16,0.698,11.6,9],[0.9161,0.7601,1.12,0.494,24.43,9],[2.8732,6.0604,2.89,-0.34,0.37,10],[5.1414,9.4461,5.22,-0.453,0.77,10],[6.2148,10.589,6.41,-0.359,1.02,10],[8.7568,11.818,7.83,-1.63,2.05,10],[9.5958,10.794,10.21,0.351,3.55,10],[9.1828,9.4679,9.18,-0.116,5.05,10],[8.1282,7.8811,8.02,-0.098,7.08,10],[6.9079,6.398,7.14,0.397,9.38,10],[5.656,4.9999,5.68,0.168,12.1,10],[2.392,1.7469,2.42,0.186,23.7,10],[4.8761,3.5977,4.86,0.415,0.25,11],[6.8621,5.9575,7.24,0.592,0.5,11],[7.8034,8.3763,8.0,-0.218,0.98,11],[7.3548,9.5055,6.81,-1.388,1.98,11],[6.2697,8.6725,5.87,-1.19,3.6,11],[5.4436,7.6859,5.22,-0.909,5.02,11],[4.4568,6.4413,4.45,-0.527,7.03,11],[3.6526,5.4,3.62,-0.494,9.03,11],[2.6857,4.112,2.69,-0.341,12.12,11],[0.817,1.4322,0.86,-0.057,24.08,11],[2.4302,4.1629,1.25,-2.221,0.25,12],[4.3394,6.8918,3.96,-1.065,0.5,12],[6.9765,9.7548,7.82,0.475,1.0,12],[9.3174,10.975,9.72,0.033,2.0,12],[9.584,10.056,9.75,0.073,3.52,12],[8.6424,8.7948,8.57,-0.079,5.07,12],[7.193,7.3533,6.59,-0.771,7.07,12],[5.9253,6.167,6.11,0.171,9.03,12],[4.3723,4.7024,4.57,0.133,12.05,12],[1.288,1.5868,1.17,-0.371,24.15,12]],"corr":{"names":["KA","CL","V","σ²_prop","σ²_add","ω²_KA","ω²_CL","ω²_V"],"mat":[[0.305,-0.264,-0.406,0.104,-0.204,0.597,0.21,0.637],[-0.264,0.004,0.86,0.255,-0.132,-0.17,-0.705,-0.505],[-0.406,0.86,0.03,0.347,-0.226,-0.375,-0.447,-0.47],[0.104,0.255,0.347,0.005,-0.583,0.09,-0.016,0.4],[-0.204,-0.132,-0.226,-0.583,0.152,-0.48,-0.113,-0.356],[0.597,-0.17,-0.375,0.09,-0.48,0.23,0.025,0.639],[0.21,-0.705,-0.447,-0.016,-0.113,0.025,0.054,0.62],[0.637,-0.505,-0.47,0.4,-0.356,0.639,0.62,0.016]]}},"monolix":{"engine":"MonolixSuite 2024R1 (headless, monolix.sh --no-gui)","algorithm":"SAEM (Stochastic Approximation EM)","n_id":12,"n_obs":120,"n_dose":12,"ofv":341.485,"aic":357.485,"bic":361.364,"bicc":372.877,"ll_se":0.036,"indiv_ll":[["1",35.663],["2",37.321],["3",20.0],["4",30.542],["5",42.256],["6",22.795],["7",22.227],["8",25.566],["9",29.141],["10",24.083],["11",23.913],["12",27.976]],"saem":{"exploratory":218,"smoothing":111,"autostop":true,"elapsed_s":1.4,"cpu_s":5.0},"params":[{"parameter":"ka_pop","value":1.55392,"cv":null,"se":0.32018,"rse":20.60457,"lo":1.05009,"hi":2.29947},{"parameter":"V_pop","value":0.45905,"cv":null,"se":0.0213,"rse":4.63899,"lo":0.41922,"hi":0.50267},{"parameter":"Cl_pop","value":0.03984,"cv":null,"se":0.00329,"rse":8.26737,"lo":0.03391,"hi":0.04681},{"parameter":"omega_ka","value":0.6556,"cv":73.28,"se":0.14655,"rse":22.35322,"lo":0.42944,"hi":1.00084},{"parameter":"omega_V","value":0.13187,"cv":13.24,"se":0.0388,"rse":29.42294,"lo":0.07652,"hi":0.22724},{"parameter":"omega_Cl","value":0.26436,"cv":26.9,"se":0.06211,"rse":23.49465,"lo":0.16972,"hi":0.41176},{"parameter":"a","value":0.44769,"cv":null,"se":0.12625,"rse":28.20046,"lo":0.26514,"hi":0.75591},{"parameter":"b","value":0.0523,"cv":null,"se":0.02404,"rse":45.95569,"lo":0.0236,"hi":0.11588}],"raw":{"ka":1.55392,"cl":0.03984,"v":0.45905,"om_ka":0.6556,"om_cl":0.26436,"om_v":0.13187,"cv_ka":73.28,"cv_cl":26.9,"cv_v":13.24,"a":0.44769,"b":0.0523,"k":0.086783,"t_half":7.987,"cl_70":2.7886,"v_70":32.134,"t_max_typ":1.967},"subjects":[{"id":"1","ka":1.70508,"V":0.374788,"Cl":0.0211936,"wt":79.6,"sex":"M"},{"id":"2","ka":1.98768,"V":0.448731,"Cl":0.0439209,"wt":72.4,"sex":"M"},{"id":"3","ka":2.32049,"V":0.475494,"Cl":0.0408595,"wt":70.5,"sex":"M"},{"id":"4","ka":1.18449,"V":0.436891,"Cl":0.0373213,"wt":72.7,"sex":"M"},{"id":"5","ka":1.34554,"V":0.477532,"Cl":0.0436943,"wt":54.6,"sex":"F"},{"id":"6","ka":1.12314,"V":0.506019,"Cl":0.0494641,"wt":80.0,"sex":"M"},{"id":"7","ka":0.699752,"V":0.512277,"Cl":0.049286,"wt":64.6,"sex":"F"},{"id":"8","ka":1.38711,"V":0.497844,"Cl":0.045932,"wt":70.5,"sex":"M"},{"id":"9","ka":6.89998,"V":0.382505,"Cl":0.0335742,"wt":86.4,"sex":"M"},{"id":"10","ka":0.760772,"V":0.453281,"Cl":0.0325256,"wt":58.2,"sex":"F"},{"id":"11","ka":3.43084,"V":0.554965,"Cl":0.055841,"wt":65.0,"sex":"F"},{"id":"12","ka":0.889921,"V":0.426026,"Cl":0.0406146,"wt":60.5,"sex":"F"}],"etas":[{"id":"1","ka":0.0895301,"V":-0.203005,"Cl":-0.635055,"sd_ka":0.155513,"sd_V":0.0562141,"sd_Cl":0.0915028},{"id":"2","ka":0.2375,"V":-0.0237915,"Cl":0.0941544,"sd_ka":0.168967,"sd_V":0.0710535,"sd_Cl":0.0919585},{"id":"3","ka":0.388657,"V":0.0346254,"Cl":0.022361,"sd_ka":0.197226,"sd_V":0.0664195,"sd_Cl":0.0947966},{"id":"4","ka":-0.277929,"V":-0.0507447,"Cl":-0.0688377,"sd_ka":0.154869,"sd_V":0.0714225,"sd_Cl":0.0978382},{"id":"5","ka":-0.149791,"V":0.0386003,"Cl":0.0893967,"sd_ka":0.142119,"sd_V":0.0660456,"sd_Cl":0.0817016},{"id":"6","ka":-0.337627,"V":0.0954456,"Cl":0.210386,"sd_ka":0.194033,"sd_V":0.0903784,"sd_Cl":0.104243},{"id":"7","ka":-0.807209,"V":0.107073,"Cl":0.208417,"sd_ka":0.173335,"sd_V":0.0899381,"sd_Cl":0.107567},{"id":"8","ka":-0.122258,"V":0.0795085,"Cl":0.138651,"sd_ka":0.178005,"sd_V":0.0754708,"sd_Cl":0.0986503},{"id":"9","ka":1.45349,"V":-0.182907,"Cl":-0.175607,"sd_ka":0.258282,"sd_V":0.0564404,"sd_Cl":0.0924104},{"id":"10","ka":-0.72092,"V":-0.0141646,"Cl":-0.207325,"sd_ka":0.145782,"sd_V":0.0733583,"sd_Cl":0.0895493},{"id":"11","ka":0.776446,"V":0.18915,"Cl":0.333376,"sd_ka":0.214631,"sd_V":0.0712509,"sd_Cl":0.0858182},{"id":"12","ka":-0.56265,"V":-0.0761554,"Cl":0.0162773,"sd_ka":0.14692,"sd_V":0.0735252,"sd_Cl":0.0817167}],"shrinkage":[{"parameter":"ka","mode":2.58,"mean":-0.65,"condDist":5.27},{"parameter":"V","mode":13.94,"mean":13.87,"condDist":-5.42},{"parameter":"Cl","mode":2.32,"mean":2.77,"condDist":-3.67}],"by_id":{"1":[[0.25,2.84,3.6946,2.7867],[0.57,6.57,6.5445,5.0023],[1.12,10.5,8.7698,6.7888],[2.02,9.66,9.5422,7.3819],[3.82,8.58,8.9222,6.6336],[5.1,8.36,8.3127,5.9547],[7.03,7.47,7.4548,5.0391],[9.05,6.89,6.6502,4.229],[12.12,5.94,5.5903,3.2399],[24.37,3.28,2.7964,1.119]],"2":[[0.27,1.72,4.0142,3.2436],[0.52,7.91,6.1328,5.179],[1.0,8.31,7.9386,7.1618],[1.92,8.33,8.3194,8.08],[3.5,6.85,7.312,7.4486],[5.02,6.08,6.3092,6.5626],[7.03,5.4,5.1828,5.5154],[9.0,4.55,4.2739,4.6489],[12.0,3.01,3.1864,3.5833],[24.3,0.9,0.956,1.2323]],"3":[[0.27,4.4,4.379,3.3394],[0.58,6.9,6.837,5.6948],[1.02,8.2,8.1354,7.4244],[2.02,7.8,8.2257,8.3184],[3.62,7.5,7.2462,7.5964],[5.08,6.2,6.3937,6.7217],[7.07,5.3,5.3888,5.6587],[9.0,4.9,4.5653,4.7862],[12.15,3.7,3.4827,3.6414],[24.17,1.05,1.2398,1.2831]],"4":[[0.35,1.89,3.3639,3.9551],[0.6,4.6,4.9791,5.6408],[1.07,8.6,6.8498,7.3266],[2.13,8.38,8.1776,8.0678],[3.5,7.54,7.8771,7.4486],[5.02,6.88,7.0404,6.5626],[7.02,5.78,5.956,5.5202],[9.02,5.33,5.0226,4.6408],[11.98,4.19,3.9006,3.5895],[24.65,1.15,1.3216,1.1954]],"5":[[0.3,2.02,4.0166,4.6903],[0.52,5.63,6.0145,6.8974],[1.0,11.4,8.5869,9.5382],[2.02,9.33,10.0757,10.7607],[3.5,8.74,9.44,9.9201],[5.02,7.56,8.3022,8.7402],[7.02,7.09,6.9255,7.3519],[9.1,5.9,5.7261,6.1379],[12.0,4.37,4.3916,4.7722],[24.35,1.57,1.4186,1.634]],"6":[[0.27,1.29,2.0394,2.9487],[0.58,3.08,3.6675,5.0285],[1.15,6.44,5.3582,6.8069],[2.03,6.32,6.2144,7.3446],[3.57,5.53,5.9507,6.7343],[5.0,4.94,5.2794,5.9762],[7.0,4.02,4.3645,5.0271],[9.22,3.46,3.5155,4.1463],[12.1,2.78,2.6531,3.2294],[23.85,0.92,0.8413,1.1648]],"7":[[0.25,0.85,1.5317,3.4314],[0.5,2.35,2.7813,5.6846],[1.02,5.02,4.6686,8.1127],[2.02,6.58,6.4987,9.0896],[3.48,7.09,7.0343,8.3927],[5.0,6.66,6.5863,7.3956],[6.98,5.25,5.6391,6.2318],[9.0,4.39,4.6923,5.2299],[12.05,3.53,3.5119,4.0137],[24.22,1.15,1.0898,1.3959]],"8":[[0.25,3.05,2.6341,3.1403],[0.52,3.05,4.5525,5.332],[0.98,7.31,6.4015,7.3203],[2.02,7.56,7.4986,8.3184],[3.53,6.59,6.9652,7.6506],[5.05,5.88,6.1083,6.7391],[7.15,4.73,5.0392,5.6196],[9.07,4.57,4.2215,4.7572],[12.1,3.0,3.192,3.6572],[24.12,1.25,1.053,1.2886]],"9":[[0.3,7.37,6.9597,2.4812],[0.63,9.03,7.661,4.0848],[1.05,7.14,7.4803,5.1304],[2.02,6.33,6.8751,5.6925],[3.53,5.66,6.0217,5.2355],[5.02,5.67,5.2835,4.6236],[7.17,4.24,4.3749,3.839],[8.8,4.11,3.7917,3.3327],[11.6,3.16,2.9655,2.6137],[24.43,1.12,0.9616,0.8584]],"10":[[0.37,2.89,2.9359,5.1479],[0.77,5.22,5.2194,8.0342],[1.02,6.41,6.2857,9.0141],[2.05,7.83,8.7483,10.097],[3.55,10.21,9.4849,9.2743],[5.05,9.18,9.0375,8.1821],[7.08,8.02,7.9996,6.8644],[9.38,7.14,6.8239,5.6226],[12.1,5.68,5.6214,4.4404],[23.7,2.42,2.446,1.6226]],"11":[[0.25,4.86,5.0327,3.4106],[0.5,7.24,7.0422,5.6501],[0.98,8.0,7.9591,7.9505],[1.98,6.81,7.4732,9.0361],[3.6,5.87,6.3578,8.2636],[5.02,5.22,5.5114,7.3381],[7.03,4.45,4.5022,6.1673],[9.03,3.62,3.6815,5.1847],[12.12,2.69,2.6977,3.9652],[24.08,0.86,0.8098,1.4044]],"12":[[0.25,1.25,2.4511,3.6741],[0.5,3.96,4.3555,6.0865],[1.0,7.82,6.944,8.6267],[2.0,9.72,9.1644,9.7334],[3.52,9.75,9.3536,8.9581],[5.07,8.57,8.4399,7.8711],[7.07,6.59,7.0754,6.6206],[9.03,6.11,5.8864,5.5852],[12.05,4.57,4.4169,4.2975],[24.15,1.17,1.3937,1.5037]]},"gof":[[2.7867,3.6946,2.84,"1"],[5.0023,6.5445,6.57,"1"],[6.7888,8.7698,10.5,"1"],[7.3819,9.5422,9.66,"1"],[6.6336,8.9222,8.58,"1"],[5.9547,8.3127,8.36,"1"],[5.0391,7.4548,7.47,"1"],[4.229,6.6502,6.89,"1"],[3.2399,5.5903,5.94,"1"],[1.119,2.7964,3.28,"1"],[3.2436,4.0142,1.72,"2"],[5.179,6.1328,7.91,"2"],[7.1618,7.9386,8.31,"2"],[8.08,8.3194,8.33,"2"],[7.4486,7.312,6.85,"2"],[6.5626,6.3092,6.08,"2"],[5.5154,5.1828,5.4,"2"],[4.6489,4.2739,4.55,"2"],[3.5833,3.1864,3.01,"2"],[1.2323,0.956,0.9,"2"],[3.3394,4.379,4.4,"3"],[5.6948,6.837,6.9,"3"],[7.4244,8.1354,8.2,"3"],[8.3184,8.2257,7.8,"3"],[7.5964,7.2462,7.5,"3"],[6.7217,6.3937,6.2,"3"],[5.6587,5.3888,5.3,"3"],[4.7862,4.5653,4.9,"3"],[3.6414,3.4827,3.7,"3"],[1.2831,1.2398,1.05,"3"],[3.9551,3.3639,1.89,"4"],[5.6408,4.9791,4.6,"4"],[7.3266,6.8498,8.6,"4"],[8.0678,8.1776,8.38,"4"],[7.4486,7.8771,7.54,"4"],[6.5626,7.0404,6.88,"4"],[5.5202,5.956,5.78,"4"],[4.6408,5.0226,5.33,"4"],[3.5895,3.9006,4.19,"4"],[1.1954,1.3216,1.15,"4"],[4.6903,4.0166,2.02,"5"],[6.8974,6.0145,5.63,"5"],[9.5382,8.5869,11.4,"5"],[10.7607,10.0757,9.33,"5"],[9.9201,9.44,8.74,"5"],[8.7402,8.3022,7.56,"5"],[7.3519,6.9255,7.09,"5"],[6.1379,5.7261,5.9,"5"],[4.7722,4.3916,4.37,"5"],[1.634,1.4186,1.57,"5"],[2.9487,2.0394,1.29,"6"],[5.0285,3.6675,3.08,"6"],[6.8069,5.3582,6.44,"6"],[7.3446,6.2144,6.32,"6"],[6.7343,5.9507,5.53,"6"],[5.9762,5.2794,4.94,"6"],[5.0271,4.3645,4.02,"6"],[4.1463,3.5155,3.46,"6"],[3.2294,2.6531,2.78,"6"],[1.1648,0.8413,0.92,"6"],[3.4314,1.5317,0.85,"7"],[5.6846,2.7813,2.35,"7"],[8.1127,4.6686,5.02,"7"],[9.0896,6.4987,6.58,"7"],[8.3927,7.0343,7.09,"7"],[7.3956,6.5863,6.66,"7"],[6.2318,5.6391,5.25,"7"],[5.2299,4.6923,4.39,"7"],[4.0137,3.5119,3.53,"7"],[1.3959,1.0898,1.15,"7"],[3.1403,2.6341,3.05,"8"],[5.332,4.5525,3.05,"8"],[7.3203,6.4015,7.31,"8"],[8.3184,7.4986,7.56,"8"],[7.6506,6.9652,6.59,"8"],[6.7391,6.1083,5.88,"8"],[5.6196,5.0392,4.73,"8"],[4.7572,4.2215,4.57,"8"],[3.6572,3.192,3.0,"8"],[1.2886,1.053,1.25,"8"],[2.4812,6.9597,7.37,"9"],[4.0848,7.661,9.03,"9"],[5.1304,7.4803,7.14,"9"],[5.6925,6.8751,6.33,"9"],[5.2355,6.0217,5.66,"9"],[4.6236,5.2835,5.67,"9"],[3.839,4.3749,4.24,"9"],[3.3327,3.7917,4.11,"9"],[2.6137,2.9655,3.16,"9"],[0.8584,0.9616,1.12,"9"],[5.1479,2.9359,2.89,"10"],[8.0342,5.2194,5.22,"10"],[9.0141,6.2857,6.41,"10"],[10.097,8.7483,7.83,"10"],[9.2743,9.4849,10.21,"10"],[8.1821,9.0375,9.18,"10"],[6.8644,7.9996,8.02,"10"],[5.6226,6.8239,7.14,"10"],[4.4404,5.6214,5.68,"10"],[1.6226,2.446,2.42,"10"],[3.4106,5.0327,4.86,"11"],[5.6501,7.0422,7.24,"11"],[7.9505,7.9591,8.0,"11"],[9.0361,7.4732,6.81,"11"],[8.2636,6.3578,5.87,"11"],[7.3381,5.5114,5.22,"11"],[6.1673,4.5022,4.45,"11"],[5.1847,3.6815,3.62,"11"],[3.9652,2.6977,2.69,"11"],[1.4044,0.8098,0.86,"11"],[3.6741,2.4511,1.25,"12"],[6.0865,4.3555,3.96,"12"],[8.6267,6.944,7.82,"12"],[9.7334,9.1644,9.72,"12"],[8.9581,9.3536,9.75,"12"],[7.8711,8.4399,8.57,"12"],[6.6206,7.0754,6.59,"12"],[5.5852,5.8864,6.11,"12"],[4.2975,4.4169,4.57,"12"],[1.5037,1.3937,1.17,"12"]],"iwres":[[0.25,-1.3333,"1"],[0.57,0.0322,"1"],[1.12,1.9089,"1"],[2.02,0.1244,"1"],[3.82,-0.3743,"1"],[5.1,0.0536,"1"],[7.03,0.0181,"1"],[9.05,0.3015,"1"],[12.12,0.4725,"1"],[24.37,0.8143,"1"],[0.27,-3.4886,"2"],[0.52,2.3127,"2"],[1.0,0.4304,"2"],[1.92,0.012,"2"],[3.5,-0.5566,"2"],[5.02,-0.2947,"2"],[7.03,0.3022,"2"],[9.0,0.4113,"2"],[12.0,-0.2872,"2"],[24.3,-0.1125,"2"],[0.27,0.031,"3"],[0.58,0.0782,"3"],[1.02,0.074,"3"],[2.02,-0.4849,"3"],[3.62,0.307,"3"],[5.08,-0.2477,"3"],[7.07,-0.1218,"3"],[9.0,0.4876,"3"],[12.15,0.345,"3"],[24.17,-0.3702,"3"],[0.35,-2.3634,"4"],[0.6,-0.5353,"4"],[1.07,2.1717,"4"],[2.13,0.2313,"4"],[3.5,-0.3921,"4"],[5.02,-0.1966,"4"],[7.02,-0.2318,"4"],[9.02,0.4327,"4"],[11.98,0.444,"4"],[24.65,-0.332,"4"],[0.3,-3.0354,"5"],[0.52,-0.5044,"5"],[1.0,3.1369,"5"],[2.02,-0.7651,"5"],[3.5,-0.7436,"5"],[5.02,-0.8416,"5"],[7.02,0.2031,"5"],[9.1,0.2327,"5"],[12.0,-0.0319,"5"],[24.35,0.2901,"5"],[0.27,-1.3518,"6"],[0.58,-0.9187,"6"],[1.15,1.4861,"6"],[2.03,0.1367,"6"],[3.57,-0.5543,"6"],[5.0,-0.469,"6"],[7.0,-0.5097,"6"],[9.22,-0.0879,"6"],[12.1,0.2164,"6"],[23.85,0.1601,"6"],[0.25,-1.2917,"7"],[0.5,-0.7271,"7"],[1.02,0.508,"7"],[2.02,0.1032,"7"],[3.48,0.0683,"7"],[5.0,0.0931,"7"],[6.98,-0.524,"7"],[9.0,-0.4361,"7"],[12.05,0.0286,"7"],[24.22,0.1193,"7"],[0.25,0.7103,"8"],[0.52,-2.1909,"8"],[0.98,1.161,"8"],[2.02,0.0731,"8"],[3.53,-0.4621,"8"],[5.05,-0.2976,"8"],[7.15,-0.4348,"8"],[9.07,0.5213,"8"],[12.1,-0.3124,"8"],[24.12,0.3918,"8"],[0.3,0.5055,"9"],[0.63,1.6137,"9"],[1.05,-0.4056,"9"],[2.02,-0.6753,"9"],[3.53,-0.4743,"9"],[5.02,0.5338,"9"],[7.17,-0.1994,"9"],[8.8,0.4928,"9"],[11.6,0.3227,"9"],[24.43,0.318,"9"],[0.37,-0.0763,"10"],[0.77,0.0008,"10"],[1.02,0.1601,"10"],[2.05,-1.0144,"10"],[3.55,0.7683,"10"],[5.05,0.1548,"10"],[7.08,0.0236,"10"],[9.38,0.3929,"10"],[12.1,0.0791,"10"],[23.7,-0.0451,"10"],[0.25,-0.2429,"11"],[0.5,0.2424,"11"],[0.98,0.0473,"11"],[1.98,-0.7909,"11"],[3.6,-0.6252,"11"],[5.02,-0.3959,"11"],[7.03,-0.0764,"11"],[9.03,-0.0961,"11"],[12.12,-0.0131,"11"],[24.08,0.1025,"11"],[0.25,-2.0856,"12"],[0.5,-0.5856,"12"],[1.0,1.0803,"12"],[2.0,0.5993,"12"],[3.52,0.4231,"12"],[5.07,0.1463,"12"],[7.07,-0.5936,"12"],[9.03,0.2959,"12"],[12.05,0.2256,"12"],[24.15,-0.4297,"12"]],"corr":{"names":["ka_pop","V_pop","Cl_pop","omega_ka","omega_V","omega_Cl","a","b"],"mat":[[1.0,0.1289,-0.0438,0.0,0.0,0.0,0.0,0.0],[0.1289,1.0,-0.1009,0.0,0.0,0.0,0.0,0.0],[-0.0438,-0.1009,1.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,1.0,-0.0133,0.0003,-0.0073,-0.0039],[0.0,0.0,0.0,-0.0133,1.0,-0.0058,-0.0116,-0.0334],[0.0,0.0,0.0,0.0003,-0.0058,1.0,-0.057,0.0385],[0.0,0.0,0.0,-0.0073,-0.0116,-0.057,1.0,-0.9032],[0.0,0.0,0.0,-0.0039,-0.0334,0.0385,-0.9032,1.0]]},"model_building":{"models":[{"model":1,"ofv":339.51,"bicc":370.9,"cov":"none"},{"model":2,"ofv":336.94,"bicc":370.81,"cov":"V~WEIGHT"},{"model":3,"ofv":335.0,"bicc":368.88,"cov":"ka~WEIGHT"},{"model":4,"ofv":333.11,"bicc":369.47,"cov":"ka~WEIGHT, V~WEIGHT"},{"model":5,"ofv":333.77,"bicc":370.13,"cov":"ka~WEIGHT, V~SEX"}],"best":3,"strategy":"COSSAC","lin":true,"stopping":"LRT (0.05, 0.01) / correlation (0.3, 0.01)","selected_params":["ka","V","Cl"],"selected_covs":["WEIGHT","SEX"]},"variants":[{"name":"Base","folder":"theophylline_project","note":"无协变量（walkthrough 主模型）","ofv":341.485,"aic":357.485,"bic":361.364,"bicc":372.877,"se":0.036,"params":[{"parameter":"ka_pop","value":1.55392,"cv":null,"se":0.32018,"rse":20.60457,"lo":1.05009,"hi":2.29947},{"parameter":"V_pop","value":0.45905,"cv":null,"se":0.0213,"rse":4.63899,"lo":0.41922,"hi":0.50267},{"parameter":"Cl_pop","value":0.03984,"cv":null,"se":0.00329,"rse":8.26737,"lo":0.03391,"hi":0.04681},{"parameter":"omega_ka","value":0.6556,"cv":73.28,"se":0.14655,"rse":22.35322,"lo":0.42944,"hi":1.00084},{"parameter":"omega_V","value":0.13187,"cv":13.24,"se":0.0388,"rse":29.42294,"lo":0.07652,"hi":0.22724},{"parameter":"omega_Cl","value":0.26436,"cv":26.9,"se":0.06211,"rse":23.49465,"lo":0.16972,"hi":0.41176},{"parameter":"a","value":0.44769,"cv":null,"se":0.12625,"rse":28.20046,"lo":0.26514,"hi":0.75591},{"parameter":"b","value":0.0523,"cv":null,"se":0.02404,"rse":45.95569,"lo":0.0236,"hi":0.11588}],"wald":[]},{"name":"ka ~ WEIGHT","folder":"theophylline_final_kaWT","note":"COSSAC 选出，未中心化","ofv":336.906,"aic":354.906,"bic":359.27,"bicc":370.783,"se":0.0301,"params":[{"parameter":"ka_pop","value":0.07858,"cv":null,"se":0.41429,"rse":527.23135,"lo":0.00585,"hi":1.05593},{"parameter":"beta_ka_WEIGHT","value":0.04271,"cv":null,"se":0.01904,"rse":44.58569,"lo":0.00539,"hi":0.08003},{"parameter":"V_pop","value":0.45647,"cv":null,"se":0.02057,"rse":4.50729,"lo":0.41793,"hi":0.49856},{"parameter":"Cl_pop","value":0.04007,"cv":null,"se":0.00334,"rse":8.33864,"lo":0.03405,"hi":0.04714},{"parameter":"omega_ka","value":0.54529,"cv":58.84,"se":0.12641,"rse":23.182,"lo":0.35201,"hi":0.84469},{"parameter":"omega_V","value":0.12608,"cv":12.66,"se":0.03803,"rse":30.16423,"lo":0.07227,"hi":0.21993},{"parameter":"omega_Cl","value":0.26729,"cv":27.21,"se":0.06245,"rse":23.36571,"lo":0.17199,"hi":0.41539},{"parameter":"a","value":0.43668,"cv":null,"se":0.12478,"rse":28.57502,"lo":0.257,"hi":0.74196},{"parameter":"b","value":0.05484,"cv":null,"se":0.0239,"rse":43.57344,"lo":0.02559,"hi":0.11752}],"wald":[{"param":"beta_ka_WEIGHT","stat":2.24287,"p":0.0249}]},{"name":"ka ~ (WT−70)","folder":"theophylline_final_ka_cWT","note":"COSSAC 选出 + 中心化（最终模型）","ofv":336.988,"aic":354.988,"bic":359.352,"bicc":370.865,"se":0.0316,"params":[{"parameter":"ka_pop","value":1.54902,"cv":null,"se":0.26387,"rse":17.03457,"lo":1.11701,"hi":2.14812},{"parameter":"beta_ka_cWEIGHT","value":0.0422,"cv":null,"se":0.01853,"rse":43.91709,"lo":0.00588,"hi":0.07853},{"parameter":"V_pop","value":0.4553,"cv":null,"se":0.01958,"rse":4.30072,"lo":0.41855,"hi":0.49529},{"parameter":"Cl_pop","value":0.04025,"cv":null,"se":0.00343,"rse":8.51237,"lo":0.0341,"hi":0.04752},{"parameter":"omega_ka","value":0.52886,"cv":56.81,"se":0.12315,"rse":23.28609,"lo":0.34078,"hi":0.82074},{"parameter":"omega_V","value":0.11683,"cv":11.72,"se":0.0372,"rse":31.84215,"lo":0.06516,"hi":0.20946},{"parameter":"omega_Cl","value":0.27375,"cv":27.9,"se":0.06349,"rse":23.19305,"lo":0.17668,"hi":0.42414},{"parameter":"a","value":0.43162,"cv":null,"se":0.12382,"rse":28.68705,"lo":0.25355,"hi":0.73474},{"parameter":"b","value":0.05642,"cv":null,"se":0.0238,"rse":42.1862,"lo":0.02686,"hi":0.11852}],"wald":[{"param":"beta_ka_cWEIGHT","stat":2.27702,"p":0.0228}]},{"name":"V,Cl ~ log(WT/70)","folder":"theophylline_allometric","note":"异速生长假设，β 自由估计","ofv":338.255,"aic":358.255,"bic":363.104,"bicc":374.617,"se":0.0265,"params":[{"parameter":"ka_pop","value":1.53563,"cv":null,"se":0.30814,"rse":20.06581,"lo":1.04784,"hi":2.25051},{"parameter":"V_pop","value":0.4545,"cv":null,"se":0.01856,"rse":4.0831,"lo":0.41959,"hi":0.49232},{"parameter":"beta_V_logtWEIGHT","value":-0.48377,"cv":null,"se":0.29715,"rse":61.42327,"lo":-1.06617,"hi":0.09863},{"parameter":"Cl_pop","value":0.03959,"cv":null,"se":0.00321,"rse":8.1152,"lo":0.03379,"hi":0.04638},{"parameter":"beta_Cl_logtWEIGHT","value":-0.54261,"cv":null,"se":0.60798,"rse":112.04893,"lo":-1.73423,"hi":0.64902},{"parameter":"omega_ka","value":0.63842,"cv":70.94,"se":0.14239,"rse":22.30313,"lo":0.41857,"hi":0.97376},{"parameter":"omega_V","value":0.10748,"cv":10.78,"se":0.03636,"rse":33.82404,"lo":0.05808,"hi":0.19892},{"parameter":"omega_Cl","value":0.25698,"cv":26.13,"se":0.06049,"rse":23.53826,"lo":0.16486,"hi":0.40057},{"parameter":"a","value":0.43544,"cv":null,"se":0.12364,"rse":28.39442,"lo":0.25705,"hi":0.73763},{"parameter":"b","value":0.05472,"cv":null,"se":0.02368,"rse":43.27787,"lo":0.02564,"hi":0.11675}],"wald":[{"param":"beta_V_logtWEIGHT","stat":1.62805,"p":0.104},{"param":"beta_Cl_logtWEIGHT","stat":0.892467,"p":0.372}]}]},"cross":{"typical":[{"key":"ka","label":"KA","unit":"1/h","nm":1.55604,"mx":1.55392,"diff_pct":0.14,"nm_lo":1.06007,"nm_hi":2.28406,"mx_lo":1.05009,"mx_hi":2.29947},{"key":"cl","label":"CL","unit":"L/h/kg","nm":0.04061,"mx":0.03984,"diff_pct":1.93,"nm_lo":0.03395,"nm_hi":0.04856,"mx_lo":0.03391,"mx_hi":0.04681},{"key":"v","label":"V","unit":"L/kg","nm":0.4691,"mx":0.45905,"diff_pct":2.19,"nm_lo":0.41351,"nm_hi":0.53215,"mx_lo":0.41922,"mx_hi":0.50267}],"iiv":[{"label":"KA","nm":73.4,"mx":73.28,"nm_sd":0.65646,"mx_omega":0.6556},{"label":"CL","nm":31.38,"mx":26.9,"nm_sd":0.30647,"mx_omega":0.26436},{"label":"V","nm":22.83,"mx":13.24,"nm_sd":0.22543,"mx_omega":0.13187}],"ebe":[{"id":1,"nm_ka":0.0816,"mx_ka":0.0895,"nm_cl":-0.737,"mx_cl":-0.6351,"nm_v":-0.365,"mx_v":-0.203},{"id":2,"nm_ka":0.206,"mx_ka":0.2375,"nm_cl":0.0641,"mx_cl":0.0942,"nm_v":-0.0903,"mx_v":-0.0238},{"id":3,"nm_ka":0.3939,"mx_ka":0.3887,"nm_cl":-0.0102,"mx_cl":0.0224,"nm_v":0.0141,"mx_v":0.0346},{"id":4,"nm_ka":-0.2934,"mx_ka":-0.2779,"nm_cl":-0.1072,"mx_cl":-0.0688,"nm_v":-0.1177,"mx_v":-0.0507},{"id":5,"nm_ka":-0.1495,"mx_ka":-0.1498,"nm_cl":0.2568,"mx_cl":0.0894,"nm_v":0.2627,"mx_v":0.0386},{"id":6,"nm_ka":-0.2626,"mx_ka":-0.3376,"nm_cl":0.098,"mx_cl":0.2104,"nm_v":-0.0131,"mx_v":0.0954},{"id":7,"nm_ka":-0.7834,"mx_ka":-0.8072,"nm_cl":0.2582,"mx_cl":0.2084,"nm_v":0.1799,"mx_v":0.1071},{"id":8,"nm_ka":-0.1114,"mx_ka":-0.1223,"nm_cl":0.1134,"mx_cl":0.1387,"nm_v":0.0752,"mx_v":0.0795},{"id":9,"nm_ka":1.3831,"mx_ka":1.4535,"nm_cl":-0.3325,"mx_cl":-0.1756,"nm_v":-0.4286,"mx_v":-0.1829},{"id":10,"nm_ka":-0.7703,"mx_ka":-0.7209,"nm_cl":-0.0761,"mx_cl":-0.2073,"nm_v":0.1239,"mx_v":-0.0142},{"id":11,"nm_ka":0.7694,"mx_ka":0.7764,"nm_cl":0.3813,"mx_cl":0.3334,"nm_v":0.2605,"mx_v":0.1892},{"id":12,"nm_ka":-0.6163,"mx_ka":-0.5626,"nm_cl":0.1239,"mx_cl":0.0163,"nm_v":0.0059,"mx_v":-0.0762}],"ipred_pairs":[[3.7092,3.6946,1,0.25],[6.5827,6.5445,1,0.57],[8.8398,8.7698,1,1.12],[9.6311,9.5422,1,2.02],[8.9964,8.9222,1,3.82],[8.3695,8.3127,1,5.1],[7.4879,7.4548,1,7.03],[6.663,6.6502,1,9.05],[5.5799,5.5903,1,12.12],[2.7491,2.7964,1,24.37],[3.9441,4.0142,2,0.27],[6.067,6.1328,2,0.52],[7.9279,7.9386,2,1.0],[8.375,8.3194,2,1.92],[7.3637,7.312,2,3.5],[6.3341,6.3092,2,5.02],[5.1795,5.1828,2,7.03],[4.252,4.2739,2,9.0],[3.1483,3.1864,2,12.0],[0.9183,0.956,2,24.3],[4.3285,4.379,3,0.27],[6.77,6.837,3,0.58],[8.071,8.1354,3,1.02],[8.1826,8.2257,3,2.02],[7.2285,7.2462,3,3.62],[6.3931,6.3937,3,5.08],[5.4054,5.3888,3,7.07],[4.5934,4.5653,3,9.0],[3.5218,3.4827,3,12.15],[1.2779,1.2398,3,24.17],[3.3368,3.3639,4,0.35],[4.9505,4.9791,4,0.6],[6.8352,6.8498,4,1.07],[8.202,8.1776,4,2.13],[7.9181,7.8771,4,3.5],[7.0743,7.0404,4,5.02],[5.9726,5.956,4,7.02],[5.0245,5.0226,4,9.02],[3.888,3.9006,4,11.98],[1.2968,1.3216,4,24.65],[4.0175,4.0166,5,0.3],[6.0189,6.0145,5,0.52],[8.601,8.5869,5,1.0],[10.104,10.0757,5,2.02],[9.4728,9.44,5,3.5],[8.3317,8.3022,5,5.02],[6.9495,6.9255,5,7.02],[5.7451,5.7261,5,9.1],[4.4052,4.3916,5,12.0],[1.4217,1.4186,5,24.35],[2.0597,2.0394,6,0.27],[3.6711,3.6675,6,0.58],[5.2932,5.3582,6,1.15],[6.0597,6.2144,6,2.03],[5.7577,5.9507,6,3.57],[5.1161,5.2794,6,5.0],[4.2582,4.3645,6,7.0],[3.4609,3.5155,6,9.22],[2.6435,2.6531,6,12.1],[0.8805,0.8413,6,23.85],[1.5362,1.5317,7,0.25],[2.786,2.7813,7,0.5],[4.6661,4.6686,7,1.02],[6.473,6.4987,7,2.02],[6.9839,7.0343,7,3.48],[6.5287,6.5863,7,5.0],[5.5877,5.6391,7,6.98],[4.6526,4.6923,7,9.0],[3.4884,3.5119,7,12.05],[1.0916,1.0898,7,24.22],[2.5832,2.6341,8,0.25],[4.4637,4.5525,8,0.52],[6.2765,6.4015,8,0.98],[7.359,7.4986,8,2.02],[6.8551,6.9652,8,3.53],[6.0332,6.1083,8,5.05],[5.003,5.0392,8,7.15],[4.2112,4.2215,8,9.07],[3.2083,3.192,8,12.1],[1.0905,1.053,8,24.12],[6.8209,6.9597,9,0.3],[7.7117,7.661,9,0.63],[7.5731,7.4803,9,1.05],[6.9486,6.8751,9,2.02],[6.0619,6.0217,9,3.53],[5.2979,5.2835,9,5.02],[4.3619,4.3749,9,7.17],[3.7642,3.7917,9,8.8],[2.9224,2.9655,9,11.6],[0.9161,0.9616,9,24.43],[2.8732,2.9359,10,0.37],[5.1414,5.2194,10,0.77],[6.2148,6.2857,10,1.02],[8.7568,8.7483,10,2.05],[9.5958,9.4849,10,3.55],[9.1828,9.0375,10,5.05],[8.1282,7.9996,10,7.08],[6.9079,6.8239,10,9.38],[5.656,5.6214,10,12.1],[2.392,2.446,10,23.7],[4.8761,5.0327,11,0.25],[6.8621,7.0422,11,0.5],[7.8034,7.9591,11,0.98],[7.3548,7.4732,11,1.98],[6.2697,6.3578,11,3.6],[5.4436,5.5114,11,5.02],[4.4568,4.5022,11,7.03],[3.6526,3.6815,11,9.03],[2.6857,2.6977,11,12.12],[0.817,0.8098,11,24.08],[2.4302,2.4511,12,0.25],[4.3394,4.3555,12,0.5],[6.9765,6.944,12,1.0],[9.3174,9.1644,12,2.0],[9.584,9.3536,12,3.52],[8.6424,8.4399,12,5.07],[7.193,7.0754,12,7.07],[5.9253,5.8864,12,9.03],[4.3723,4.4169,12,12.05],[1.288,1.3937,12,24.15]],"pop_pairs":[[2.4018,2.7867,1,0.25],[4.3126,5.0023,1,0.57],[5.8572,6.7888,1,1.12],[6.3808,7.3819,1,2.02],[5.7618,6.6336,1,3.82],[5.1914,5.9547,1,5.1],[4.4182,5.0391,1,7.03],[3.7301,4.229,1,9.05],[2.8837,3.2399,1,12.12],[1.0327,1.119,1,24.37],[3.0727,3.2436,2,0.27],[4.9057,5.179,2,0.52],[6.7838,7.1618,2,1.0],[7.656,8.08,2,1.92],[7.0661,7.4486,2,3.5],[6.2342,6.5626,2,5.02],[5.2493,5.5154,2,7.03],[4.4328,4.6489,2,9.0],[3.4264,3.5833,2,12.0],[1.1921,1.2323,2,24.3],[3.2484,3.3394,3,0.27],[5.5386,5.6948,3,0.58],[7.2194,7.4244,3,1.02],[8.0881,8.3184,3,2.02],[7.3888,7.5964,3,3.62],[6.5413,6.7217,3,5.08],[5.5109,5.6587,3,7.07],[4.6645,4.7862,3,9.0],[3.553,3.6414,3,12.15],[1.2575,1.2831,3,24.17],[3.7312,3.9551,4,0.35],[5.3212,5.6408,4,0.6],[6.9118,7.3266,4,1.07],[7.615,8.0678,4,2.13],[7.0387,7.4486,4,3.5],[6.2108,6.5626,4,5.02],[5.2351,5.5202,4,7.02],[4.4102,4.6408,4,9.02],[3.4216,3.5895,4,11.98],[1.1545,1.1954,4,24.65],[5.8857,4.6903,5,0.3],[8.6476,6.8974,5,0.52],[11.934,9.5382,5,1.0],[13.398,10.7607,5,2.02],[12.258,9.9201,5,3.5],[10.714,8.7402,5,5.02],[8.9166,7.3519,5,7.02],[7.3621,6.1379,5,9.1],[5.6363,4.7722,5,12.0],[1.8069,1.634,5,24.35],[2.5287,2.9487,6,0.27],[4.3137,5.0285,6,0.58],[5.8443,6.8069,6,1.15],[6.318,7.3446,6,2.03],[5.8176,6.7343,6,3.57],[5.185,5.9762,6,5.0],[4.3882,5.0271,6,7.0],[3.644,4.1463,6,9.22],[2.8633,3.2294,6,12.1],[1.0706,1.1648,6,23.85],[3.6419,3.4314,7,0.25],[6.0307,5.6846,7,0.5],[8.5989,8.1127,7,1.02],[9.6185,9.0896,7,2.02],[8.8607,8.3927,7,3.48],[7.7896,7.3956,7,5.0],[6.5439,6.2318,7,6.98],[5.4748,5.2299,7,9.0],[4.182,4.0137,7,12.05],[1.4275,1.3959,7,24.22],[3.0548,3.1403,8,0.25],[5.1859,5.332,8,0.52],[7.1183,7.3203,8,0.98],[8.0881,8.3184,8,2.02],[7.4413,7.6506,8,3.53],[6.5581,6.7391,8,5.05],[5.4729,5.6196,8,7.15],[4.6364,4.7572,8,9.07],[3.5684,3.6572,8,12.1],[1.2629,1.2886,8,24.12],[1.9708,2.4812,9,0.3],[3.2466,4.0848,9,0.63],[4.0822,5.1304,9,1.05],[4.5444,5.6925,9,2.02],[4.2066,5.2355,9,3.53],[3.7404,4.6236,9,5.02],[3.1368,3.839,9,7.17],[2.7438,3.3327,9,8.8],[2.1802,2.6137,9,11.6],[0.7601,0.8584,9,24.43],[6.0604,5.1479,10,0.37],[9.4461,8.0342,10,0.77],[10.589,9.0141,10,1.02],[11.818,10.097,10,2.05],[10.794,9.2743,10,3.55],[9.4679,8.1821,10,5.05],[7.8811,6.8644,10,7.08],[6.398,5.6226,10,9.38],[4.9999,4.4404,10,12.1],[1.7469,1.6226,10,23.7],[3.5977,3.4106,11,0.25],[5.9575,5.6501,11,0.5],[8.3763,7.9505,11,0.98],[9.5055,9.0361,11,1.98],[8.6725,8.2636,11,3.6],[7.6859,7.3381,11,5.02],[6.4413,6.1673,11,7.03],[5.4,5.1847,11,9.03],[4.112,3.9652,11,12.12],[1.4322,1.4044,11,24.08],[4.1629,3.6741,12,0.25],[6.8918,6.0865,12,0.5],[9.7548,8.6267,12,1.0],[10.975,9.7334,12,2.0],[10.056,8.9581,12,3.52],[8.7948,7.8711,12,5.07],[7.3533,6.6206,12,7.07],[6.167,5.5852,12,9.03],[4.7024,4.2975,12,12.05],[1.5868,1.5037,12,24.15]],"n_matched":120,"rmse_ipred":0.0729,"rmse_pred":0.7777,"t_half":{"nm":8.007,"mx":7.987},"cl_70":{"nm":2.8425,"mx":2.7886},"v_70":{"nm":32.837,"mx":32.134},"t_max":{"nm":1.966,"mx":1.967},"ofv":{"nm":134.8345,"nm_const":220.5452,"nm_with_const":355.3798,"mx":341.485,"mx_aic":357.485,"mx_bic":361.364},"residual":{"nm_prop_cv":7.36,"nm_add_sd":0.5963,"mx_a":0.44769,"mx_b":0.0523}},"sources":{"mod":";; Theophylline population PK — one-compartment oral model (walkthrough demo)\n;; Data: classic theophylline dataset, 12 subjects, single oral dose 4.02 mg/kg\n;; AMT is in mg/kg, so CL and V are in per-kg units (L/h/kg, L/kg).\n;; ADVAN2 TRANS2: KA (absorption), K = CL/V (elimination), S2 = V\n;; Covariate: allometric weight on CL (0.75) and V (1.0), reference 70 kg\n\n$PROBLEM  Theophylline 1-cpt oral popPK (easy-nonmem walkthrough)\n$INPUT  ID TIME AMT DV WT SEX EVID CMT MDV\n$DATA   theo_nm.csv IGNORE=@\n\n$SUBROUTINES ADVAN2 TRANS2\n\n$PK\n  TVKA = THETA(1)\n  TVCL = THETA(2)\n  TVV  = THETA(3)\n  KA   = TVKA * EXP(ETA(1))\n  CL   = TVCL * (WT/70)**0.75 * EXP(ETA(2))\n  V    = TVV  * (WT/70)       * EXP(ETA(3))\n  S2   = V\n  K    = CL/V\n\n$ERROR\n  IPRED = F\n  Y     = IPRED * (1 + EPS(1)) + EPS(2)\n\n$THETA\n  (0, 1.0, 20)   ; KA   (1/h)\n  (0, 0.04, 5)   ; CL   (L/h/kg, per-kg dose basis)\n  (0, 0.5, 5)    ; V    (L/kg, per-kg dose basis)\n\n$OMEGA\n  0.09           ; IIV on KA\n  0.09           ; IIV on CL\n  0.09           ; IIV on V\n\n$SIGMA\n  0.05           ; proportional\n  0.01           ; additive (mg/L)\n\n$ESTIMATION METHOD=1 INTERACTION MAXEVAL=9999 SIGDIG=3 PRINT=5 POSTHOC\n$COVARIANCE PRINT=E\n\n$TABLE ID TIME DV WT SEX KA CL V PRED IPRED CWRES NOAPPEND NOPRINT ONEHEADER\n       FILE=sdtab1\n","mlxtran":"<DATAFILE>\n\n[FILEINFO]\nfile = 'theophylline_data.csv'\ndelimiter = comma\nheader = {ID, AMT, TIME, CONC, WEIGHT, SEX}\n\n[CONTENT]\nID = {use=identifier}\nAMT = {use=amount}\nTIME = {use=time}\nCONC = {use=observation, type=continuous}\nWEIGHT = {use=covariate, type=continuous}\nSEX = {use=covariate, type=categorical}\n\n<MODEL>\n\n[COVARIATE]\ninput = {WEIGHT, SEX}\nSEX = {type=categorical, categories={'F', 'M'}}\n\nEQUATION:\nlogtWEIGHT = log(WEIGHT/70)\n\n[INDIVIDUAL]\ninput = {ka_pop, omega_ka, V_pop, omega_V, Cl_pop, omega_Cl}\n\nDEFINITION:\nka = {distribution=logNormal, typical=ka_pop, sd=omega_ka}\nV = {distribution=logNormal, typical=V_pop, sd=omega_V}\nCl = {distribution=logNormal, typical=Cl_pop, sd=omega_Cl}\n\n[LONGITUDINAL]\ninput = {a, b}\n\nfile = 'lib:oral1_1cpt_kaVCl.txt'\n\nDEFINITION:\nCONC = {distribution=normal, prediction=Cc, errorModel=combined1(a, b)}\n\n<FIT>\ndata = 'CONC'\nmodel = CONC\n\n<PARAMETER>\nka_pop = {value=1, method=MLE}\nV_pop = {value=0.5, method=MLE}\nCl_pop = {value=0.1, method=MLE}\nomega_ka = {value=1, method=MLE}\nomega_V = {value=1, method=MLE}\nomega_Cl = {value=1, method=MLE}\na = {value=1, method=MLE}\nb = {value=0.3, method=MLE}\nc = {value=1, method=FIXED}\n\n<MONOLIX>\n\n[TASKS]\npopulationParameters()\nindividualParameters(method = {conditionalMean, conditionalMode})\nfim(method = Linearization)\nlogLikelihood(method = ImportanceSampling)\nplotResult(method = {indfits, obspred, vpc, residualsscatter, residualsdistribution, parameterdistribution, covariatemodeldiagnosis, covariancemodeldiagnosis, randomeffects, saemresults})\n\n[SETTINGS]\nGLOBAL:\nexportpath = 'theophylline_project'\n","mlxtran_final":"<DATAFILE>\n\n[FILEINFO]\nfile = 'theophylline_data.csv'\ndelimiter = comma\nheader = {ID, AMT, TIME, CONC, WEIGHT, SEX}\n\n[CONTENT]\nID = {use=identifier}\nAMT = {use=amount}\nTIME = {use=time}\nCONC = {use=observation, type=continuous}\nWEIGHT = {use=covariate, type=continuous}\nSEX = {use=covariate, type=categorical}\n\n<MODEL>\n\n[COVARIATE]\ninput = {WEIGHT, SEX}\nSEX = {type=categorical, categories={'F', 'M'}}\n\nEQUATION:\ncWEIGHT = WEIGHT - 70\nlogtWEIGHT = log(WEIGHT/70)\n\n[INDIVIDUAL]\ninput = {ka_pop, omega_ka, V_pop, omega_V, Cl_pop, omega_Cl, cWEIGHT, beta_ka_cWEIGHT}\n\nDEFINITION:\nka = {distribution=logNormal, typical=ka_pop, covariate=cWEIGHT, coefficient=beta_ka_cWEIGHT, sd=omega_ka}\nV = {distribution=logNormal, typical=V_pop, sd=omega_V}\nCl = {distribution=logNormal, typical=Cl_pop, sd=omega_Cl}\n\n[LONGITUDINAL]\ninput = {a, b}\n\nfile = 'lib:oral1_1cpt_kaVCl.txt'\n\nDEFINITION:\nCONC = {distribution=normal, prediction=Cc, errorModel=combined1(a, b)}\n\n<FIT>\ndata = 'CONC'\nmodel = CONC\n\n<PARAMETER>\nka_pop = {value=1.5, method=MLE}\nV_pop = {value=0.5, method=MLE}\nCl_pop = {value=0.04, method=MLE}\nbeta_ka_cWEIGHT = {value=0.04, method=MLE}\nomega_ka = {value=0.5, method=MLE}\nomega_V = {value=0.15, method=MLE}\nomega_Cl = {value=0.25, method=MLE}\na = {value=0.5, method=MLE}\nb = {value=0.05, method=MLE}\nc = {value=1, method=FIXED}\n\n<MONOLIX>\n\n[TASKS]\npopulationParameters()\nindividualParameters(method = {conditionalMean, conditionalMode})\nfim(method = Linearization)\nlogLikelihood(method = ImportanceSampling)\nplotResult(method = {indfits, obspred, vpc, residualsscatter, residualsdistribution, parameterdistribution, covariatemodeldiagnosis, covariancemodeldiagnosis, randomeffects, saemresults})\n\n[SETTINGS]\nGLOBAL:\nexportpath = 'theophylline_final_ka_cWT'\n","prep":"#!/usr/bin/env Rscript\n# prep_data.R — convert the Monolix-format theophylline CSV into NONMEM format.\n# Input : ../monolix-theophylline/theophylline_data.csv (ID,AMT,TIME,CONC,WEIGHT,SEX)\n# Output: theo_nm.csv (ID TIME AMT DV WT SEX EVID CMT MDV)\n#\n# NONMEM conventions used:\n#   - ADVAN2 (1-cpt, first-order absorption): CMT=1 depot (dose), CMT=2 central (obs)\n#   - dose rows: EVID=1, MDV=1, DV=. ; obs rows: EVID=0, MDV=0, AMT=.\n\nd <- read.csv(\"../monolix-theophylline/theophylline_data.csv\",\n              stringsAsFactors = FALSE, na.strings = c(\"NA\", \".\"))\n\nout <- data.frame(\n  ID   = d$ID,\n  TIME = d$TIME,\n  AMT  = ifelse(is.na(d$AMT), \".\", d$AMT),\n  DV   = ifelse(is.na(d$CONC), \".\", d$CONC),\n  WT   = d$WEIGHT,\n  SEX  = ifelse(d$SEX == \"M\", 1, 0),   # 1 = male, 0 = female\n  EVID = ifelse(is.na(d$AMT), 0, 1),\n  CMT  = ifelse(is.na(d$AMT), 2, 1),   # obs in central, dose in depot\n  MDV  = ifelse(is.na(d$CONC), 1, 0),\n  stringsAsFactors = FALSE\n)\nwrite.table(out, \"theo_nm.csv\", sep = \",\", row.names = FALSE, quote = FALSE)\ncat(\"wrote theo_nm.csv:\", nrow(out), \"rows,\",\n    sum(out$EVID == 1), \"doses,\", sum(out$EVID == 0), \"observations,\",\n    length(unique(out$ID)), \"subjects\\n\")\n","gof":"#!/usr/bin/env Rscript\n# gof_plots.R — GOF figures from the $TABLE output (sdtab1), per easy-nonmem\n# reference.md. Outputs: gof_indfits.png, gof_diag.png\n\nsuppressPackageStartupMessages(library(ggplot2))\n\n# NOTE: NONMEM writes a \"TABLE NO.  1\" banner line before the header —\n# skip=1 is required when reading $TABLE output written with ONEHEADER.\n# Dose rows carry DV=\".\" which read.table turns into NA; drop them.\nd <- read.table(\"sdtab1\", header = TRUE, skip = 1)\nd <- d[!is.na(d$DV), , drop = FALSE]   # observations only\n\ntheme_set(theme_bw(base_size = 11))\n\n# ---- figure 1: individual fits + observations --------------------------------\np1 <- ggplot(d, aes(TIME, IPRED)) +\n  geom_line(aes(group = ID), color = \"steelblue\", linewidth = 0.6) +\n  geom_point(aes(y = DV), size = 1.6, alpha = 0.85) +\n  facet_wrap(~ID, scales = \"free_x\") +\n  labs(title = \"Theophylline: individual fits (IPRED) and observations (DV)\",\n       x = \"Time (h)\", y = \"Concentration (mg/L)\")\nggsave(\"gof_indfits.png\", p1, width = 9, height = 7, dpi = 150)\n\n# ---- figure 2: diagnostic panels ---------------------------------------------\ndf <- data.frame(\n  IPRED = d$IPRED, PRED = d$PRED, DV = d$DV, CWRES = d$CWRES, TIME = d$TIME\n)\n\np_obs <- ggplot(df, aes(IPRED, DV)) +\n  geom_point(alpha = 0.6) +\n  geom_abline(slope = 1, intercept = 0, linetype = 2, color = \"firebrick\") +\n  geom_smooth(method = \"loess\", se = FALSE, color = \"steelblue\") +\n  coord_equal() +\n  labs(title = \"DV vs IPRED\", x = \"IPRED\", y = \"DV\")\n\np_pred <- ggplot(df, aes(PRED, DV)) +\n  geom_point(alpha = 0.6) +\n  geom_abline(slope = 1, intercept = 0, linetype = 2, color = \"firebrick\") +\n  geom_smooth(method = \"loess\", se = FALSE, color = \"steelblue\") +\n  coord_equal() +\n  labs(title = \"DV vs PRED\", x = \"PRED\", y = \"DV\")\n\np_cwres <- ggplot(df, aes(TIME, CWRES)) +\n  geom_point(alpha = 0.6) +\n  geom_hline(yintercept = 0, linetype = 2, color = \"firebrick\") +\n  geom_smooth(method = \"loess\", se = FALSE, color = \"steelblue\") +\n  labs(title = \"CWRES vs time\", x = \"Time (h)\", y = \"CWRES\")\n\nlibrary(gridExtra)\np_all <- arrangeGrob(p_obs, p_pred, p_cwres, ncol = 2)\nggsave(\"gof_diag.png\", p_all, width = 9, height = 7, dpi = 150)\n\ncat(\"wrote gof_indfits.png and gof_diag.png\\n\")\n"}};
+
+const baseAxis = {
+  axisLine: { lineStyle: { color: '#3a4660' } },
+  axisLabel: { color: '#8b98b8', fontSize: 11 },
+  splitLine: { lineStyle: { color: '#1f2a40' } }
+};
+const nameStyle = { color: '#8b98b8', fontSize: 11 };
+const NM_C = '#5b8ff9', MX_C = '#f6bd16', OK_C = '#5ad8a6', BAD_C = '#e8684a';
+const palette = ['#5b8ff9','#5ad8a6','#f6bd16','#e8684a','#6dc8ec','#9270ca','#ff9d4d',
+                 '#269a99','#ff99c3','#5d7092','#c2c8d5','#b6e3ff'];
+const charts = {};
+function init(id) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  const c = echarts.init(el, null, { renderer: 'canvas' });
+  charts[id] = c;
+  return c;
+}
+window.addEventListener('resize', () => Object.values(charts).forEach(c => c.resize()));
+const fmt = (x, d=3) => (x===null||x===undefined||Number.isNaN(x)) ? '—'
+  : Number(x).toPrecision(d);
+function rseBadge(v){
+  if (v===null||v===undefined) return '—';
+  const c = v>50 ? BAD_C : v>30 ? '#f0b429' : OK_C;
+  return `<span style="color:${c}">${v.toFixed(1)}%</span>`;
+}
+
+/* ============ shared: forest plot (est + 95% CI, log x) ============ */
+function forestOption(items, color, xName) {
+  // items: [{label, est, lo, hi, rse}]
+  const cats = items.map(i => i.label);
+  return {
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'item', formatter: p => {
+      const it = items[p.dataIndex]; if (!it) return '';
+      return `${it.label}<br/>估计 ${fmt(it.est,4)}<br/>95% CI [${fmt(it.lo,3)}, ${fmt(it.hi,3)}]`
+        + (it.rse!=null ? `<br/>RSE ${it.rse.toFixed(1)}%` : '');
+    }},
+    grid: { left: 10, right: 40, top: 30, bottom: 30, containLabel: true },
+    xAxis: { type: 'log', name: xName || '', nameTextStyle: nameStyle,
+      nameLocation: 'middle', nameGap: 26, ...baseAxis,
+      axisLabel: { color: '#8b98b8', fontSize: 11, formatter: v => +v.toPrecision(2) } },
+    yAxis: { type: 'category', data: cats, inverse: true,
+      axisLabel: { color: '#c9d6ee', fontSize: 11.5, fontFamily: 'Menlo, monospace' },
+      axisLine: { lineStyle: { color: '#3a4660' } }, splitLine: { show: false } },
+    series: [{
+      type: 'custom',
+      renderItem: (params, api) => {
+        const y = api.coord([0, api.value(0)])[1];
+        const xLo = api.coord([api.value(1), 0])[0];
+        const xHi = api.coord([api.value(2), 0])[0];
+        const xEst = api.coord([api.value(3), 0])[0];
+        const h = 9;
+        return { type: 'group', children: [
+          { type: 'line', shape: { x1: xLo, y1: y, x2: xHi, y2: y },
+            style: { stroke: color, lineWidth: 2 } },
+          { type: 'line', shape: { x1: xLo, y1: y-h, x2: xLo, y2: y+h },
+            style: { stroke: color, lineWidth: 2 } },
+          { type: 'line', shape: { x1: xHi, y1: y-h, x2: xHi, y2: y+h },
+            style: { stroke: color, lineWidth: 2 } },
+          { type: 'circle', shape: { cx: xEst, cy: y, r: 5 },
+            style: { fill: color } }
+        ]};
+      },
+      encode: { x: [1,2,3], y: 0 },
+      data: items.map((it, i) => [i, it.lo, it.hi, it.est])
+    }]
+  };
+}
+
+/* ============ shared: individual-fits subject selector ============ */
+function fitsController(selId, chartId, byId, ipredIdx, predIdx, obsIdx, engineLabel) {
+  const ids = Object.keys(byId).sort((a,b)=>+a-+b);
+  const sel = document.getElementById(selId);
+  sel.innerHTML = ids.map(id => `<option value="${id}">ID ${id}</option>`).join('')
+    + '<option value="ALL">全部叠加</option>';
+  const c = init(chartId);
+  function render(mode) {
+    if (mode === 'ALL') {
+      const series = [];
+      ids.forEach((id, i) => {
+        const col = palette[i % palette.length];
+        series.push({ name: 'ID'+id+' obs', type: 'scatter', symbolSize: 6,
+          itemStyle: { color: col, opacity: 0.9 },
+          data: byId[id].map(rr => [rr[0], rr[obsIdx]]) });
+        series.push({ name: 'ID'+id, type: 'line', showSymbol: false, smooth: 0.15,
+          lineStyle: { width: 1.5, color: col },
+          data: byId[id].map(rr => [rr[0], rr[ipredIdx]]) });
+      });
+      c.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'item' },
+        legend: { type: 'scroll', top: 0, textStyle: { color: '#8b98b8', fontSize: 10 },
+          data: ids.map(id => 'ID'+id) },
+        grid: { left: 46, right: 16, top: 36, bottom: 56 },
+        xAxis: { type: 'value', name: 'Time (h)', nameTextStyle: nameStyle, ...baseAxis },
+        yAxis: { type: 'value', name: '浓度 (mg/L)', nameTextStyle: nameStyle, ...baseAxis },
+        dataZoom: [{ type: 'inside' }, { type: 'slider', height: 16, bottom: 8 }],
+        series
+      }, true);
+    } else {
+      const rows = byId[mode];
+      const dense = [];
+      const tmax = Math.max(...rows.map(rr => rr[0]));
+      const p = engineParamsFor(mode, engineLabel);
+      if (p) {  // dense model curve from individual parameters (1-cpt oral)
+        const { ka, k, v, amtPerKg } = p;
+        for (let t = 0.01; t <= tmax * 1.02; t += tmax / 240) {
+          dense.push([+t.toFixed(3), +(amtPerKg * ka / (v * (ka - k))
+            * (Math.exp(-k * t) - Math.exp(-ka * t))).toFixed(4)]);
+        }
+      }
+      c.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis' },
+        legend: { top: 0, textStyle: { color: '#8b98b8' } },
+        grid: { left: 46, right: 16, top: 36, bottom: 40 },
+        xAxis: { type: 'value', name: 'Time (h)', nameTextStyle: nameStyle, ...baseAxis },
+        yAxis: { type: 'value', name: '浓度 (mg/L)', nameTextStyle: nameStyle, ...baseAxis },
+        series: [
+          { name: '观测 DV', type: 'scatter', symbolSize: 9, z: 5,
+            itemStyle: { color: '#e6edf3', borderColor: NM_C, borderWidth: 1.5 },
+            data: rows.map(rr => [rr[0], rr[obsIdx]]) },
+          { name: '个体预测 IPRED', type: 'line', showSymbol: true, symbolSize: 4,
+            lineStyle: { width: 2, color: OK_C }, itemStyle: { color: OK_C },
+            data: rows.map(rr => [rr[0], rr[ipredIdx]]) },
+          ...(dense.length ? [{ name: '模型曲线 (个体参数)', type: 'line', showSymbol: false,
+            smooth: true, lineStyle: { width: 1.4, color: MX_C, type: 'dashed' },
+            data: dense }] : []),
+          ...(predIdx != null ? [{ name: '群体预测 PRED', type: 'line', showSymbol: false,
+            smooth: 0.15, lineStyle: { width: 1.6, color: '#9270ca', type: 'dotted' },
+            data: rows.map(rr => [rr[0], rr[predIdx]]) }] : [])
+        ]
+      }, true);
+    }
+  }
+  sel.onchange = () => render(sel.value);
+  sel.value = '1';
+  render('1');
+}
+function engineParamsFor(id, engine) {
+  const AMT = 4.02;  // mg/kg
+  if (engine === 'nm') {
+    const s = D.nonmem.subjects.find(x => x.id == id);
+    return s ? { ka: s.ka, k: s.cl / s.v, v: s.v, amtPerKg: AMT } : null;
+  }
+  const s = D.monolix.subjects.find(x => x.id == id);
+  return s ? { ka: s.ka, k: s.Cl / s.V, v: s.V, amtPerKg: AMT } : null;
+}
+
+/* ================= 1) NONMEM ================= */
+const NM = D.nonmem;
+
+// N1 convergence
+(function () {
+  const c = init('nmConv');
+  const its = NM.iters.filter(p => p.iter >= 0);
+  c.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'axis', formatter: ps => {
+      const p = ps[0]; return `迭代 ${p.data[0]}<br/>OFV = ${(+p.data[1]).toFixed(4)}`; }},
+    grid: { left: 52, right: 20, top: 34, bottom: 40 },
+    xAxis: { type: 'value', name: '迭代次数', nameTextStyle: nameStyle, ...baseAxis },
+    yAxis: { type: 'log', name: 'OFV (log)', nameTextStyle: nameStyle, ...baseAxis,
+      axisLabel: { color: '#8b98b8', fontSize: 11, formatter: v => +v.toPrecision(3) } },
+    series: [{
+      type: 'line', data: its.map(p => [p.iter, p.obj]), showSymbol: true, symbolSize: 7,
+      lineStyle: { width: 2.2, color: NM_C }, itemStyle: { color: NM_C },
+      markPoint: { symbolSize: 46, itemStyle: { color: OK_C },
+        label: { fontSize: 9, color: '#0d1117' },
+        data: [{ coord: [its[its.length-1].iter, its[its.length-1].obj],
+                 value: '收敛\n' + its[its.length-1].obj.toFixed(2) }] },
+      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+        colorStops: [{ offset: 0, color: 'rgba(91,143,249,.28)' },
+                     { offset: 1, color: 'rgba(91,143,249,0)' }] } }
+    }]
+  });
+})();
+
+// N2 forest of thetas
+(function () {
+  const items = NM.params.filter(p => ['KA','CL','V'].includes(p.name))
+    .map(p => ({ label: p.label + '  (' + p.unit + ')', est: p.est, lo: p.lo, hi: p.hi,
+                 rse: p.rse }));
+  init('nmForest').setOption(forestOption(items, NM_C, '估计值（对数轴）'));
+})();
+
+// N3 individual fits
+fitsController('nmSubjSel', 'nmFits', NM.by_id, 2, 3, 1, 'nm');
+
+// N4 GOF: DV vs IPRED / DV vs PRED
+(function () {
+  const c = init('nmGof');
+  const all = NM.gof.map(g => Math.max(g[0], g[1], g[2]));
+  const m = Math.max(...all) * 1.05;
+  c.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'item', formatter: p =>
+      p.seriesType === 'line' ? '' :
+      `ID ${p.data[2]}<br/>观测 ${p.data[1]}<br/>预测 ${p.data[0]}` },
+    legend: { top: 0, textStyle: { color: '#8b98b8' } },
+    grid: { left: 48, right: 18, top: 34, bottom: 42 },
+    xAxis: { type: 'value', name: '预测', min: 0, max: m, nameTextStyle: nameStyle, ...baseAxis },
+    yAxis: { type: 'value', name: '观测 DV', min: 0, max: m, nameTextStyle: nameStyle, ...baseAxis },
+    series: [
+      { name: 'DV vs IPRED', type: 'scatter', symbolSize: 7,
+        itemStyle: { color: OK_C, opacity: .8 }, data: NM.gof.map(g => [g[0], g[2], g[5]]) },
+      { name: 'DV vs PRED', type: 'scatter', symbolSize: 7,
+        itemStyle: { color: '#9270ca', opacity: .7 }, data: NM.gof.map(g => [g[1], g[2], g[5]]) },
+      { name: 'y = x', type: 'line', showSymbol: false, silent: true,
+        data: [[0,0],[m,m]], lineStyle: { type: 'dashed', color: '#8b98b8', width: 1.2 } }
+    ]
+  });
+})();
+
+// N5 CWRES vs time / vs PRED
+(function () {
+  const c = init('nmCwres');
+  c.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'item', formatter: p =>
+      `ID ${p.data[2]}<br/>${p.seriesName} = ${p.data[0]}<br/>CWRES = ${p.data[1]}` },
+    legend: { top: 0, textStyle: { color: '#8b98b8' } },
+    grid: [{ left: 46, right: '53%', top: 34, bottom: 40 },
+           { left: '55%', right: 18, top: 34, bottom: 40 }],
+    xAxis: [
+      { type: 'value', name: 'Time (h)', gridIndex: 0, nameTextStyle: nameStyle, ...baseAxis },
+      { type: 'value', name: 'PRED', gridIndex: 1, nameTextStyle: nameStyle, ...baseAxis }],
+    yAxis: [
+      { type: 'value', name: 'CWRES', gridIndex: 0, nameTextStyle: nameStyle, ...baseAxis },
+      { type: 'value', name: 'CWRES', gridIndex: 1, nameTextStyle: nameStyle, ...baseAxis }],
+    series: [
+      { name: '时间', type: 'scatter', xAxisIndex: 0, yAxisIndex: 0, symbolSize: 7,
+        data: NM.gof.map(g => [g[4], g[3], g[5]]),
+        itemStyle: { color: p => p.data[1] >= 0 ? NM_C : BAD_C, opacity: .8 },
+        markLine: { silent: true, symbol: 'none', label: { show: false },
+          lineStyle: { color: '#8b98b8', type: 'dashed' },
+          data: [{ yAxis: 0 }, { yAxis: 2, lineStyle: { color: '#3a4660' } },
+                 { yAxis: -2, lineStyle: { color: '#3a4660' } }] } },
+      { name: 'PRED', type: 'scatter', xAxisIndex: 1, yAxisIndex: 1, symbolSize: 7,
+        data: NM.gof.map(g => [g[1], g[3], g[5]]),
+        itemStyle: { color: p => p.data[1] >= 0 ? '#9270ca' : BAD_C, opacity: .8 } }
+    ]
+  });
+})();
+
+// N6 eta bars + posterior SD
+(function () {
+  const c = init('nmEta');
+  const ids = NM.phi.map(p => 'ID' + p.id);
+  function bars(key, sdKey, color, name) {
+    return { name, type: 'bar', barGap: '10%',
+      data: NM.phi.map(p => p[key]),
+      itemStyle: { color },
+      label: { show: false } };
+  }
+  c.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' },
+      formatter: ps => {
+        const i = ps[0].dataIndex, p = NM.phi[i];
+        return `ID ${p.id}<br/>η_KA ${p.eta1} ± ${p.sd1}<br/>η_CL ${p.eta2} ± ${p.sd2}` +
+               `<br/>η_V ${p.eta3} ± ${p.sd3}`;
+      }},
+    legend: { top: 0, textStyle: { color: '#8b98b8' } },
+    grid: { left: 46, right: 16, top: 34, bottom: 34 },
+    xAxis: { type: 'category', data: ids, axisLabel: { color: '#8b98b8', fontSize: 10 },
+      axisLine: { lineStyle: { color: '#3a4660' } } },
+    yAxis: { type: 'value', name: 'η (EBE)', nameTextStyle: nameStyle, ...baseAxis },
+    series: [
+      bars('eta1', 'sd1', NM_C, 'η_KA'),
+      bars('eta2', 'sd2', OK_C, 'η_CL'),
+      bars('eta3', 'sd3', MX_C, 'η_V'),
+      { type: 'line', markLine: { silent: true, symbol: 'none',
+        lineStyle: { color: '#8b98b8', type: 'dashed' }, data: [{ yAxis: 0 }] }, data: [] }
+    ]
+  });
+})();
+
+// N7 correlation heatmap
+function corrHeatmap(elId, corr, rotate) {
+  const c = init(elId);
+  const data = [];
+  corr.names.forEach((ri, i) => corr.names.forEach((rj, j) =>
+    data.push([j, i, +(corr.mat[i][j] || 0).toFixed(3)])));
+  c.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { formatter: p =>
+      `${corr.names[p.value[1]]} × ${corr.names[p.value[0]]}<br/>r = ${p.value[2]}` },
+    grid: { left: 80, right: 30, top: 16, bottom: 84 },
+    xAxis: { type: 'category', data: corr.names, position: 'bottom',
+      axisLabel: { color: '#8b98b8', rotate: rotate || 38, fontSize: 10 },
+      axisLine: { lineStyle: { color: '#3a4660' } }, splitArea: { show: false } },
+    yAxis: { type: 'category', data: corr.names,
+      axisLabel: { color: '#8b98b8', fontSize: 10 },
+      axisLine: { lineStyle: { color: '#3a4660' } } },
+    visualMap: { min: -1, max: 1, calculable: true, orient: 'horizontal',
+      left: 'center', bottom: 0, itemHeight: 90,
+      inRange: { color: ['#3b82f6', '#0d1117', '#ef4444'] },
+      textStyle: { color: '#8b98b8' } },
+    series: [{ type: 'heatmap', data,
+      label: { show: true, fontSize: 9, color: '#e6edf3',
+        formatter: p => Math.abs(p.value[2]) < 0.05 ? '' : p.value[2] } }]
+  });
+}
+corrHeatmap('nmCorr', NM.corr);
+
+/* ================= 2) Monolix ================= */
+const MX = D.monolix;
+
+// M1 forest of population params (base)
+(function () {
+  const order = ['ka_pop','V_pop','Cl_pop'];
+  const items = MX.params.filter(p => order.includes(p.parameter) && p.lo > 0)
+    .map(p => ({ label: p.parameter, est: p.value, lo: p.lo, hi: p.hi, rse: p.rse }));
+  init('mxForest').setOption(forestOption(items, MX_C, '估计值（对数轴，线性化 SE）'));
+})();
+
+// M2 individual fits
+fitsController('mxSubjSel', 'mxFits', MX.by_id, 2, 3, 1, 'mx');
+
+// M3 GOF
+(function () {
+  const c = init('mxGof');
+  const m = Math.max(...MX.gof.map(g => Math.max(g[0], g[1], g[2]))) * 1.05;
+  c.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'item', formatter: p =>
+      p.seriesType === 'line' ? '' :
+      `ID ${p.data[2]}<br/>观测 ${p.data[1]}<br/>预测 ${p.data[0]}` },
+    legend: { top: 0, textStyle: { color: '#8b98b8' } },
+    grid: { left: 48, right: 18, top: 34, bottom: 42 },
+    xAxis: { type: 'value', name: '预测', min: 0, max: m, nameTextStyle: nameStyle, ...baseAxis },
+    yAxis: { type: 'value', name: '观测 CONC', min: 0, max: m, nameTextStyle: nameStyle, ...baseAxis },
+    series: [
+      { name: 'Obs vs indivPred (SAEM)', type: 'scatter', symbolSize: 7,
+        itemStyle: { color: OK_C, opacity: .8 }, data: MX.gof.map(g => [g[1], g[2], g[3]]) },
+      { name: 'Obs vs popPred', type: 'scatter', symbolSize: 7,
+        itemStyle: { color: '#9270ca', opacity: .7 }, data: MX.gof.map(g => [g[0], g[2], g[3]]) },
+      { name: 'y = x', type: 'line', showSymbol: false, silent: true,
+        data: [[0,0],[m,m]], lineStyle: { type: 'dashed', color: '#8b98b8', width: 1.2 } }
+    ]
+  });
+})();
+
+// M4 IWRES vs time
+(function () {
+  const c = init('mxIwres');
+  c.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'item', formatter: p =>
+      `ID ${p.data[2]}<br/>t = ${p.data[0]} h<br/>IWRES = ${p.data[1]}` },
+    grid: { left: 46, right: 18, top: 24, bottom: 40 },
+    xAxis: { type: 'value', name: 'Time (h)', nameTextStyle: nameStyle, ...baseAxis },
+    yAxis: { type: 'value', name: 'IWRES', nameTextStyle: nameStyle, ...baseAxis },
+    series: [{ type: 'scatter', symbolSize: 8,
+      data: MX.iwres.map(rr => ({ value: rr,
+        itemStyle: { color: rr[1] >= 0 ? MX_C : BAD_C, opacity: .85 } })),
+      markLine: { silent: true, symbol: 'none', label: { show: false },
+        lineStyle: { color: '#8b98b8', type: 'dashed' },
+        data: [{ yAxis: 0 }, { yAxis: 2, lineStyle: { color: '#3a4660' } },
+               { yAxis: -2, lineStyle: { color: '#3a4660' } }] } }]
+  });
+})();
+
+// M5 eta bars
+(function () {
+  const c = init('mxEta');
+  c.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { top: 0, textStyle: { color: '#8b98b8' } },
+    grid: { left: 46, right: 16, top: 34, bottom: 34 },
+    xAxis: { type: 'category', data: MX.etas.map(e => 'ID'+e.id),
+      axisLabel: { color: '#8b98b8', fontSize: 10 },
+      axisLine: { lineStyle: { color: '#3a4660' } } },
+    yAxis: { type: 'value', name: 'η (条件估计)', nameTextStyle: nameStyle, ...baseAxis },
+    series: [
+      { name: 'η_ka', type: 'bar', data: MX.etas.map(e => e.ka), itemStyle: { color: MX_C } },
+      { name: 'η_V', type: 'bar', data: MX.etas.map(e => e.V), itemStyle: { color: OK_C } },
+      { name: 'η_Cl', type: 'bar', data: MX.etas.map(e => e.Cl), itemStyle: { color: NM_C } },
+      { type: 'line', markLine: { silent: true, symbol: 'none',
+        lineStyle: { color: '#8b98b8', type: 'dashed' }, data: [{ yAxis: 0 }] }, data: [] }
+    ]
+  });
+})();
+
+// M6 correlation (linearized FIM)
+corrHeatmap('mxCorr', MX.corr, 40);
+
+// M7 COSSAC model building
+(function () {
+  const c = init('mxMb');
+  const mb = MX.model_building.models;
+  c.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'axis' },
+    legend: { top: 0, textStyle: { color: '#8b98b8' } },
+    grid: { left: 52, right: 20, top: 34, bottom: 64 },
+    xAxis: { type: 'category', data: mb.map(m => 'M' + m.model + '\n' + m.cov),
+      axisLabel: { color: '#8b98b8', fontSize: 10, interval: 0 },
+      axisLine: { lineStyle: { color: '#3a4660' } } },
+    yAxis: { type: 'value', scale: true, name: '−2LL / BICc', nameTextStyle: nameStyle, ...baseAxis },
+    series: [
+      { name: '−2LL (线性化)', type: 'bar', data: mb.map(m => m.ofv), barWidth: 26,
+        itemStyle: { color: p => mb[p.dataIndex].model === MX.model_building.best
+          ? OK_C : MX_C, borderRadius: [4,4,0,0] } },
+      { name: 'BICc', type: 'line', data: mb.map(m => m.bicc),
+        itemStyle: { color: '#9270ca' }, lineStyle: { width: 2 }, symbolSize: 7 }
+    ]
+  });
+})();
+
+// M8 variant comparison (Base / kaWT / ka_cWT / allometric)
+(function () {
+  const c = init('mxModels');
+  const vs = MX.variants;
+  c.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'axis' },
+    legend: { top: 0, textStyle: { color: '#8b98b8' } },
+    grid: { left: 52, right: 20, top: 34, bottom: 56 },
+    xAxis: { type: 'category', data: vs.map(v => v.name),
+      axisLabel: { color: '#8b98b8', fontSize: 10.5, interval: 0 },
+      axisLine: { lineStyle: { color: '#3a4660' } } },
+    yAxis: { type: 'value', scale: true, nameTextStyle: nameStyle, ...baseAxis },
+    series: [
+      { name: 'OFV (IS)', type: 'bar', data: vs.map(v => v.ofv),
+        itemStyle: { color: MX_C, borderRadius: [4,4,0,0] } },
+      { name: 'AIC', type: 'bar', data: vs.map(v => v.aic),
+        itemStyle: { color: '#6dc8ec', borderRadius: [4,4,0,0] } },
+      { name: 'BIC', type: 'bar', data: vs.map(v => v.bic),
+        itemStyle: { color: OK_C, borderRadius: [4,4,0,0] } },
+      { name: 'BICc', type: 'bar', data: vs.map(v => v.bicc),
+        itemStyle: { color: '#9270ca', borderRadius: [4,4,0,0] } }
+    ]
+  });
+})();
+
+/* ================= 3) cross-engine ================= */
+const X = D.cross;
+
+// X1 typical parameters NM vs MX with CI
+(function () {
+  const c = init('xTyp');
+  const cats = [];
+  const itemsNM = [], itemsMX = [];
+  X.typical.forEach(t => {
+    cats.push(t.label + ' (' + t.unit + ')');
+    itemsNM.push({ est: t.nm, lo: t.nm_lo, hi: t.nm_hi });
+    itemsMX.push({ est: t.mx, lo: t.mx_lo, hi: t.mx_hi });
+  });
+  function series(items, color, name, dy) {
+    return { name, type: 'custom',
+      renderItem: (params, api) => {
+        const idx = api.value(0);
+        const y = api.coord([0, idx])[1] + dy;
+        const xLo = api.coord([api.value(1), 0])[0];
+        const xHi = api.coord([api.value(2), 0])[0];
+        const xEst = api.coord([api.value(3), 0])[0];
+        return { type: 'group', children: [
+          { type: 'line', shape: { x1: xLo, y1: y, x2: xHi, y2: y },
+            style: { stroke: color, lineWidth: 2 } },
+          { type: 'line', shape: { x1: xLo, y1: y-6, x2: xLo, y2: y+6 },
+            style: { stroke: color, lineWidth: 2 } },
+          { type: 'line', shape: { x1: xHi, y1: y-6, x2: xHi, y2: y+6 },
+            style: { stroke: color, lineWidth: 2 } },
+          { type: 'circle', shape: { cx: xEst, cy: y, r: 5 }, style: { fill: color } }
+        ]};
+      },
+      encode: { x: [1,2,3], y: 0 },
+      data: items.map((it, i) => [i, it.lo, it.hi, it.est]) };
+  }
+  c.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'item', formatter: p => {
+      const it = (p.seriesName.startsWith('NONMEM') ? itemsNM : itemsMX)[p.value[0]];
+      return `${p.seriesName}<br/>${cats[p.value[0]]}<br/>估计 ${fmt(it.est,4)}` +
+             `<br/>95% CI [${fmt(it.lo,3)}, ${fmt(it.hi,3)}]`; }},
+    legend: { top: 0, textStyle: { color: '#8b98b8' } },
+    grid: { left: 10, right: 40, top: 34, bottom: 34, containLabel: true },
+    xAxis: { type: 'log', name: '估计值（对数轴）', nameLocation: 'middle', nameGap: 26,
+      nameTextStyle: nameStyle, ...baseAxis,
+      axisLabel: { color: '#8b98b8', fontSize: 11, formatter: v => +v.toPrecision(2) } },
+    yAxis: { type: 'category', data: cats, inverse: true,
+      axisLabel: { color: '#c9d6ee', fontSize: 11.5, fontFamily: 'Menlo, monospace' },
+      axisLine: { lineStyle: { color: '#3a4660' } }, splitLine: { show: false } },
+    series: [ series(itemsNM, NM_C, 'NONMEM FOCE-I', -8),
+              series(itemsMX, MX_C, 'Monolix SAEM', +8) ]
+  });
+})();
+
+// X2 relative difference
+(function () {
+  const c = init('xDiff');
+  c.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'axis', formatter: ps => {
+      const t = X.typical[ps[0].dataIndex];
+      return `${t.label}<br/>NONMEM ${fmt(t.nm,4)} vs Monolix ${fmt(t.mx,4)} ${t.unit}` +
+             `<br/>相对差 ${t.diff_pct > 0 ? '+' : ''}${t.diff_pct}%`; }},
+    grid: { left: 52, right: 40, top: 20, bottom: 34 },
+    xAxis: { type: 'category', data: X.typical.map(t => t.label),
+      axisLabel: { color: '#8b98b8', fontSize: 12 },
+      axisLine: { lineStyle: { color: '#3a4660' } } },
+    yAxis: { type: 'value', name: '(NM−MLX)/MLX ×100%', nameTextStyle: nameStyle, ...baseAxis },
+    series: [{ type: 'bar', barWidth: 44,
+      data: X.typical.map(t => ({ value: t.diff_pct,
+        itemStyle: { color: Math.abs(t.diff_pct) <= 2 ? OK_C : '#f0b429',
+                     borderRadius: [4,4,0,0] } })),
+      label: { show: true, position: 'top', color: '#c9d6ee', fontSize: 11,
+        formatter: p => (p.value > 0 ? '+' : '') + p.value.toFixed(2) + '%' },
+      markLine: { silent: true, symbol: 'none', label: { show: false },
+        lineStyle: { color: '#8b98b8', type: 'dashed' }, data: [{ yAxis: 0 }] } }]
+  });
+})();
+
+// X3 IPRED NM vs MLX
+(function () {
+  const c = init('xIpred');
+  const m = Math.max(...X.ipred_pairs.map(p => Math.max(p[0], p[1]))) * 1.05;
+  c.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'item', formatter: p => p.seriesType === 'line' ? '' :
+      `ID ${p.data[2]}, t=${p.data[3]} h<br/>NONMEM IPRED ${p.data[0]}<br/>Monolix iPred ${p.data[1]}` },
+    grid: { left: 52, right: 20, top: 20, bottom: 42 },
+    xAxis: { type: 'value', name: 'Monolix 个体预测', min: 0, max: m,
+      nameTextStyle: nameStyle, ...baseAxis },
+    yAxis: { type: 'value', name: 'NONMEM IPRED', min: 0, max: m,
+      nameTextStyle: nameStyle, ...baseAxis },
+    series: [
+      { type: 'scatter', symbolSize: 8, data: X.ipred_pairs,
+        itemStyle: { color: OK_C, opacity: .8 } },
+      { type: 'line', showSymbol: false, silent: true, data: [[0,0],[m,m]],
+        lineStyle: { type: 'dashed', color: '#8b98b8', width: 1.2 } }
+    ],
+    graphic: [{ type: 'text', right: 26, top: 26,
+      style: { text: 'RMSE = ' + X.rmse_ipred, fill: '#8b98b8', fontSize: 12 } }]
+  });
+})();
+
+// X4 EBE comparison scatter
+(function () {
+  const c = init('xEbe');
+  const sets = [
+    { key: ['nm_ka','mx_ka'], name: 'η_KA', color: NM_C },
+    { key: ['nm_cl','mx_cl'], name: 'η_CL', color: OK_C },
+    { key: ['nm_v','mx_v'],   name: 'η_V',  color: MX_C }
+  ];
+  const ext = Math.max(...X.ebe.flatMap(e =>
+    [Math.abs(e.nm_ka), Math.abs(e.mx_ka), Math.abs(e.nm_cl), Math.abs(e.mx_cl),
+     Math.abs(e.nm_v), Math.abs(e.mx_v)])) * 1.1;
+  c.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'item', formatter: p => p.seriesType === 'line' ? '' :
+      `ID ${p.data[2]}<br/>${p.seriesName}: NONMEM ${p.data[0]} vs Monolix ${p.data[1]}` },
+    legend: { top: 0, textStyle: { color: '#8b98b8' } },
+    grid: { left: 46, right: 20, top: 34, bottom: 42 },
+    xAxis: { type: 'value', name: 'Monolix η', min: -ext, max: ext,
+      nameTextStyle: nameStyle, ...baseAxis },
+    yAxis: { type: 'value', name: 'NONMEM η', min: -ext, max: ext,
+      nameTextStyle: nameStyle, ...baseAxis },
+    series: sets.map(s => ({ name: s.name, type: 'scatter', symbolSize: 9,
+      itemStyle: { color: s.color, opacity: .85 },
+      data: X.ebe.map(e => [e[s.key[1]], e[s.key[0]], e.id]) }))
+      .concat([{ name: 'y = x', type: 'line', showSymbol: false, silent: true,
+        data: [[-ext,-ext],[ext,ext]],
+        lineStyle: { type: 'dashed', color: '#8b98b8', width: 1.2 } }])
+  });
+})();
+
+// X5 individual CL/V vs WT (both engines, allometric check)
+(function () {
+  const c = init('xCov');
+  const nmS = NM.subjects, mxS = MX.subjects;
+  c.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'item', formatter: p =>
+      `${p.seriesName}<br/>ID ${p.data[2]} · WT ${p.data[0]} kg<br/>值 ${p.data[1]}` },
+    legend: { top: 0, textStyle: { color: '#8b98b8', fontSize: 11 } },
+    grid: [{ left: 52, right: '55%', top: 40, bottom: 40 },
+           { left: '53%', right: 20, top: 40, bottom: 40 }],
+    xAxis: [
+      { gridIndex: 0, type: 'value', name: 'WT (kg)', nameTextStyle: nameStyle, ...baseAxis },
+      { gridIndex: 1, type: 'value', name: 'WT (kg)', nameTextStyle: nameStyle, ...baseAxis }],
+    yAxis: [
+      { gridIndex: 0, type: 'value', name: '个体 CL (L/h/kg)', nameTextStyle: nameStyle, ...baseAxis },
+      { gridIndex: 1, type: 'value', name: '个体 V (L/kg)', nameTextStyle: nameStyle, ...baseAxis }],
+    series: [
+      { name: 'NONMEM CL', type: 'scatter', xAxisIndex: 0, yAxisIndex: 0, symbolSize: 9,
+        itemStyle: { color: NM_C }, data: nmS.map(s => [s.wt, +s.cl.toFixed(4), s.id]) },
+      { name: 'Monolix Cl', type: 'scatter', xAxisIndex: 0, yAxisIndex: 0, symbolSize: 9,
+        symbol: 'triangle', itemStyle: { color: MX_C },
+        data: mxS.map(s => [s.wt, +s.Cl.toFixed(4), s.id]) },
+      { name: 'NONMEM V', type: 'scatter', xAxisIndex: 1, yAxisIndex: 1, symbolSize: 9,
+        itemStyle: { color: NM_C }, data: nmS.map(s => [s.wt, +s.v.toFixed(4), s.id]) },
+      { name: 'Monolix V', type: 'scatter', xAxisIndex: 1, yAxisIndex: 1, symbolSize: 9,
+        symbol: 'triangle', itemStyle: { color: MX_C },
+        data: mxS.map(s => [s.wt, +s.V.toFixed(4), s.id]) }
+    ]
+  });
+})();
+
+/* ================= tables ================= */
+function paramTable(el, rows, cols) {
+  let html = '<tr>' + cols.map(c => `<th>${c.label}</th>`).join('') + '</tr>';
+  rows.forEach(rr => {
+    html += '<tr>' + cols.map(c => `<td>${c.get(rr)}</td>`).join('') + '</tr>';
+  });
+  document.getElementById(el).innerHTML = html;
+}
+paramTable('tabNm', NM.params, [
+  { label: '参数', get: p => `<span class="mono">${p.label}</span>` },
+  { label: '单位', get: p => p.unit },
+  { label: '估计值', get: p => `<b>${fmt(p.est,4)}</b>` },
+  { label: 'RSE%', get: p => rseBadge(p.rse) },
+  { label: '95% CI', get: p => `${fmt(p.lo,3)} – ${fmt(p.hi,3)}` }
+]);
+(function () {
+  const rows = [
+    ['ETABAR (η_KA, η_CL, η_V)', NM.etabar.map(x => fmt(x,3)).join(' , ')],
+    ['ETABAR SE', NM.etabar_se.map(x => fmt(x,3)).join(' , ')],
+    ['P 值 (H₀: 均值=0)', NM.etabar_p.map(x => fmt(x,3)).join(' , ')],
+    ['η 收缩率 SD%', NM.eta_shrink_sd.map(x => x + '%').join(' , ')],
+    ['EBV 收缩率 SD%', NM.ebv_shrink_sd.map(x => x + '%').join(' , ')],
+    ['ε 收缩率 SD%', NM.eps_shrink_sd.map(x => x + '%').join(' , ')],
+    ['相对信息量%', NM.rel_info.map(x => x + '%').join(' , ')]
+  ];
+  document.getElementById('tabNmShrink').innerHTML =
+    '<tr><th>诊断量</th><th>值</th></tr>' +
+    rows.map(rr => `<tr><td>${rr[0]}</td><td class="mono">${rr[1]}</td></tr>`).join('');
+})();
+paramTable('tabMx', MX.params, [
+  { label: '参数', get: p => `<span class="mono">${p.parameter}</span>` },
+  { label: '估计值', get: p => `<b>${fmt(p.value,4)}</b>` },
+  { label: 'SE (lin)', get: p => fmt(p.se,3) },
+  { label: 'RSE%', get: p => rseBadge(p.rse) },
+  { label: '95% CI', get: p => `${fmt(p.lo,3)} – ${fmt(p.hi,3)}` },
+  { label: 'IIV CV%', get: p => p.cv != null ? p.cv.toFixed(1) : '—' }
+]);
+(function () {
+  const fin = MX.variants.find(v => v.folder === 'theophylline_final_ka_cWT');
+  if (!fin) return;
+  const wald = Object.fromEntries(fin.wald.map(w => [w.param, w.p]));
+  document.getElementById('tabMxFinal').innerHTML =
+    '<tr><th>参数</th><th>估计值</th><th>SE</th><th>RSE%</th><th>95% CI</th><th>Wald p</th></tr>' +
+    fin.params.map(p =>
+      `<tr><td class="mono">${p.parameter}</td><td><b>${fmt(p.value,4)}</b></td>` +
+      `<td>${fmt(p.se,3)}</td><td>${rseBadge(p.rse)}</td>` +
+      `<td>${fmt(p.lo,3)} – ${fmt(p.hi,3)}</td>` +
+      `<td>${wald[p.parameter] != null ? wald[p.parameter].toFixed(4) : '—'}</td></tr>`
+    ).join('');
+})();
+(function () {
+  document.getElementById('tabMxShrink').innerHTML =
+    '<tr><th>参数</th><th>收缩率% (mode)</th><th>收缩率% (mean)</th><th>收缩率% (condDist)</th></tr>' +
+    MX.shrinkage.map(s =>
+      `<tr><td class="mono">${s.parameter}</td><td>${s.mode}</td><td>${s.mean}</td>` +
+      `<td>${s.condDist}</td></tr>`).join('');
+})();
+(function () {
+  document.getElementById('tabCross').innerHTML =
+    '<tr><th>参数</th><th>NONMEM FOCE-I</th><th>Monolix SAEM</th><th>相对差</th><th>说明</th></tr>' +
+    X.typical.map(t =>
+      `<tr><td class="mono">${t.label} (${t.unit})</td><td>${fmt(t.nm,4)}</td>` +
+      `<td>${fmt(t.mx,4)}</td>` +
+      `<td style="color:${Math.abs(t.diff_pct)<=2?'#5ad8a6':'#f0b429'}">` +
+      `${t.diff_pct>0?'+':''}${t.diff_pct.toFixed(2)}%</td>` +
+      `<td style="text-align:left;color:#8b98b8">结构参数</td></tr>`).join('') +
+    X.iiv.map(t =>
+      `<tr><td class="mono">IIV ${t.label} (CV%)</td><td>${fmt(t.nm,3)}</td>` +
+      `<td>${fmt(t.mx,3)}</td>` +
+      `<td style="color:#8b98b8">${fmt(t.nm-t.mx,3)} pp</td>` +
+      `<td style="text-align:left;color:#8b98b8">随机效应（模型设定不同）</td></tr>`).join('') +
+    `<tr><td class="mono">残差误差</td><td>比例 ${fmt(X.residual.nm_prop_cv,3)}% CV + 加性 ${fmt(X.residual.nm_add_sd,3)} mg/L</td>` +
+    `<td>combined1: a=${fmt(X.residual.mx_a,3)}, b=${fmt(X.residual.mx_b,3)}</td>` +
+    `<td style="color:#8b98b8">—</td><td style="text-align:left;color:#8b98b8">参数化方式不同，不可直接比</td></tr>` +
+    `<tr><td class="mono">t½ = ln2·V/CL (h)</td><td>${fmt(X.t_half.nm,3)}</td>` +
+    `<td>${fmt(X.t_half.mx,3)}</td>` +
+    `<td style="color:#5ad8a6">${(((X.t_half.nm-X.t_half.mx)/X.t_half.mx)*100).toFixed(2)}%</td>` +
+    `<td style="text-align:left;color:#8b98b8">派生参数</td></tr>` +
+    `<tr><td class="mono">目标函数值</td><td>OFV ${fmt(D.nonmem.ofv,5)}（FOCE-I，不含常数）</td>` +
+    `<td>OFV ${fmt(D.monolix.ofv,5)}（重要性采样 −2LL）</td>` +
+    `<td style="color:#e8684a">不可比</td>` +
+    `<td style="text-align:left;color:#8b98b8">常数项/算法不同，禁止跨引擎比较 OFV</td></tr>`;
+})();
+
+/* source code blocks */
+function putPre(id, txt) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = txt;
+}
+putPre('srcMod', D.sources.mod);
+putPre('srcMlx', D.sources.mlxtran);
+putPre('srcMlxFinal', D.sources.mlxtran_final);
+putPre('srcPrep', D.sources.prep);
+putPre('srcGof', D.sources.gof);
+</script>
+</body>
+</html>
