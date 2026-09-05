@@ -1,0 +1,115 @@
+********************************************************************************
+*                       theophylline_final_kaWT.mlxtran                        *
+*                       August 08, 2026 at 13:37:14                            *
+*                       Monolix version : 2024R1                               *
+********************************************************************************
+
+
+ESTIMATION OF THE POPULATION PARAMETERS ________________________________________
+
+Fixed Effects ----------------------------     se_lin     rse(%)   P2.5_lin  P97.5_lin
+ka_pop         :                    0.0786      0.414        527    0.00585       1.06
+beta_ka_WEIGHT :                    0.0427      0.019       44.6    0.00539       0.08
+V_pop          :                     0.456     0.0206       4.51      0.418      0.499
+Cl_pop         :                    0.0401    0.00334       8.34     0.0341     0.0471
+
+Standard Deviation of the Random Effects -
+omega_ka       :                     0.545      0.126       23.2      0.352      0.845
+omega_V        :                     0.126      0.038       30.2     0.0723       0.22
+omega_Cl       :                     0.267     0.0625       23.4      0.172      0.415
+
+Error Model Parameters -------------------
+a              :                     0.437      0.125       28.6      0.257      0.742
+b              :                    0.0548     0.0239       43.6     0.0256      0.118
+
+Elapsed time (seconds):      1.4
+CPU time     (seconds):        3
+Exploratory phase iterations:      200 (Autostop)
+Smoothing phase iterations:        128 (Autostop)
+
+ _______________________________________________________________________________
+
+
+
+ESTIMATION OF THE INDIVIDUAL PARAMETERS ________________________________________
+
+
+Estimation of the individual parameters by Conditional Distribution ------------
+               min            Q1        median            Q3           max  shrinkage(%)
+ka :         0.675          1.01          1.37          2.15          7.34          2.71
+V  :         0.381         0.431         0.459         0.503         0.537          14.9
+Cl :        0.0213        0.0351        0.0425        0.0477        0.0572          2.85
+
+Elapsed time (seconds):     0.34
+CPU time     (seconds):     0.81
+Iterations:       80 (Autostop)
+
+ -------------------------------------------------------------------------------
+
+
+Estimation of the individual parameters by Conditional Mode --------------------
+               min            Q1        median            Q3           max  shrinkage(%)
+ka :         0.663         0.998          1.32          2.07          6.67          5.26
+V  :          0.38         0.428         0.458         0.499         0.537          14.1
+Cl :        0.0211        0.0354        0.0426        0.0478        0.0573          2.25
+
+Elapsed time (seconds):    0.002
+CPU time     (seconds):        0
+
+ -------------------------------------------------------------------------------
+
+ _______________________________________________________________________________
+
+
+
+ESTIMATION OF THE FISHER INFORMATION MATRIX ____________________________________
+
+
+Estimation of the Fisher information matrix by Linearization -------------------
+
+Correlation Matrix :
+        ka_pop         1
+beta_ka_WEIGHT  -0.99172         1
+         V_pop  0.011362  0.008802         1
+        Cl_pop-0.00074553-0.0057248  -0.10091         1
+      omega_ka         0         0         0         0         1
+       omega_V         0         0         0         0 -0.019859         1
+      omega_Cl         0         0         0         00.00049581-0.0054319         1
+             a         0         0         0         0 -0.010193 -0.011772 -0.054509         1
+             b         0         0         0         0-0.0049119 -0.035173  0.036408  -0.90108         1
+
+                               min       max   max/min
+Eigen values           :    0.0081         2   2.5e+02
+
+Elapsed time (seconds):    0.001
+CPU time     (seconds):        0
+
+ -------------------------------------------------------------------------------
+
+ _______________________________________________________________________________
+
+
+
+ESTIMATION OF THE LOG-LIKELIHOOD _______________________________________________
+
+                                                            (is)
+-2 x log-likelihood                       (OFV) :         336.91
+Akaike Information Criteria               (AIC) :         354.91
+Corrected Bayesian Information Criteria  (BICc) :         370.78
+Bayesian Information Criteria             (BIC) :         359.27
+
+Elapsed time                          (seconds) :           1.04
+CPU time                              (seconds) :           2.00
+MonteCarlo size (is):    10000 (Fixed number of iterations)
+
+
+[Importance Sampling] Standard error        : 0.030
+                      Sampling distribution : T-distribution with 5 degrees of freedom
+
+ _______________________________________________________________________________
+
+DATASET INFORMATION
+Number of individuals: 12
+Number of observations (CONC): 120
+Number of doses: 12
+

@@ -1,0 +1,2 @@
+parameter,covariate,statistics,p-value,test
+V,beta_V_WEIGHT,-3.35672,0.00728238,t-Test

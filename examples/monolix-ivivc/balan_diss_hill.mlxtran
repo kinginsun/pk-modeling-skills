@@ -1,0 +1,66 @@
+<DATAFILE>
+
+[FILEINFO]
+file = 'data/balan_diss_data.csv'
+delimiter = comma
+header = {ID, TIME, Y, FORM}
+
+[CONTENT]
+ID = {use=identifier}
+TIME = {use=time}
+Y = {use=observation, name=Y, type=continuous}
+FORM = {use=covariate, type=categorical}
+
+<MODEL>
+
+[COVARIATE]
+input = FORM
+
+FORM = {type=categorical, categories={'1', '2', '3'}}
+
+[INDIVIDUAL]
+input = {T50_pop, gamma_pop, EMAX_pop, beta_T50_FORM_2, beta_T50_FORM_3, beta_gamma_FORM_2, beta_gamma_FORM_3, FORM}
+
+FORM = {type=categorical, categories={'1', '2', '3'}}
+
+DEFINITION:
+T50 = {distribution=logNormal, typical=T50_pop, covariate=FORM, coefficient={0, beta_T50_FORM_2, beta_T50_FORM_3}, no-variability}
+gamma = {distribution=logNormal, typical=gamma_pop, covariate=FORM, coefficient={0, beta_gamma_FORM_2, beta_gamma_FORM_3}, no-variability}
+EMAX = {distribution=logNormal, typical=EMAX_pop, no-variability}
+
+[LONGITUDINAL]
+input = {a, b}
+
+file = 'model/balan_diss_model.txt'
+
+DEFINITION:
+Y = {distribution=normal, prediction=Fdiss, errorModel=combined1(a, b)}
+
+<FIT>
+data = Y
+model = Y
+
+<PARAMETER>
+T50_pop = {value=0.45, method=MLE}
+beta_T50_FORM_2 = {value=1.7, method=MLE}
+beta_T50_FORM_3 = {value=2.6, method=MLE}
+gamma_pop = {value=2.5, method=MLE}
+beta_gamma_FORM_2 = {value=-0.22, method=MLE}
+beta_gamma_FORM_3 = {value=-0.51, method=MLE}
+EMAX_pop = {value=99.5, method=MLE}
+a = {value=0.5, method=MLE}
+b = {value=0.02, method=MLE}
+c = {value=1, method=FIXED}
+
+<MONOLIX>
+
+[TASKS]
+populationParameters()
+individualParameters(method = {conditionalMean, conditionalMode})
+fim(method = Linearization)
+logLikelihood(method = Linearization)
+plotResult(method = {indfits, obspred, residualsscatter, residualsdistribution, parameterdistribution, saemresults})
+
+[SETTINGS]
+GLOBAL:
+exportpath = 'balan_diss_hill_monolix'

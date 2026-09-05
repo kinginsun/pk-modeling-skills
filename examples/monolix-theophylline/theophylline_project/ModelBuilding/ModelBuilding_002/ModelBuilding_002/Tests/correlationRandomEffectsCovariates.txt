@@ -1,0 +1,10 @@
+eta,covariate,statistics,p-value,test
+eta_ka,SEX,1.0405,0.331748,Anova
+eta_ka,WEIGHT,1.60938,0.138611,Pearson
+eta_ka,logtWEIGHT,1.53383,0.156078,Pearson
+eta_V,SEX,0.352289,0.566003,Anova
+eta_V,WEIGHT,-0.717504,0.489484,Pearson
+eta_V,logtWEIGHT,-0.590817,0.567755,Pearson
+eta_Cl,SEX,0.431311,0.526171,Anova
+eta_Cl,WEIGHT,-0.718312,0.489008,Pearson
+eta_Cl,logtWEIGHT,-0.642468,0.53502,Pearson

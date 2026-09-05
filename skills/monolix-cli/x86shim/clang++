@@ -1,0 +1,4 @@
+#!/bin/sh
+# Force x86_64: MonolixSuite is x86_64 (Rosetta) but Apple Silicon's default
+# compiler produces arm64 plugins, which then fail to load.
+exec /usr/bin/clang++ -arch x86_64 "$@"

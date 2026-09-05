@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Generated run outputs from smoke tests / examples
+**/run*.dir*/
+**/*_execute*/
+**/modelfit_dir*/
+**/NM_run*/
+**/smoke_*/
+*.png
+
+# Python
+__pycache__/
+*.pyc
+venv/

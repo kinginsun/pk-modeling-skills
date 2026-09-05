@@ -1,0 +1,9 @@
+[modelBuilding]
+strategy=COSSAC
+lin=true
+copyData=false
+stoppingCriterion=LRT
+LRTThreshold=0.05, 0.01
+correlationThreshold=0.3, 0.01
+selectedParameters=ka, V, Cl
+selectedCovariates=WEIGHT, SEX

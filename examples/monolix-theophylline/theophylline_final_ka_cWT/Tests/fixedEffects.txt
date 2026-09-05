@@ -1,0 +1,2 @@
+parameter,statistics(lin),p-value(lin)
+beta_ka_cWEIGHT,2.27702,0.0228

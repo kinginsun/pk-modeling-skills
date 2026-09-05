@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monolix 建模报告 — Balan 溶出 Hill 模型</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117; --card: #161d2e; --border: #263049;
+    --text: #e6edf3; --muted: #8b98b8; --accent: #5b8ff9;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: "PingFang SC", -apple-system, "Segoe UI", sans-serif; padding: 28px 32px 48px; }
+  header { margin-bottom: 22px; }
+  header h1 { font-size: 22px; font-weight: 650; letter-spacing: .3px; }
+  header .sub { color: var(--muted); font-size: 13px; margin-top: 6px; line-height: 1.7; }
+  header .sub code { background: #1f2937; padding: 1px 6px; border-radius: 5px; font-size: 12px; color: #9ecbff; }
+  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 18px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; }
+  .stat .k { color: var(--muted); font-size: 12px; }
+  .stat .v { font-size: 22px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .stat .v small { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 4px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px 12px; }
+  .card.wide { grid-column: span 2; }
+  .card h3 { font-size: 14px; font-weight: 600; }
+  .card .desc { color: var(--muted); font-size: 12px; margin: 3px 0 8px; line-height: 1.6; }
+  .chart { width: 100%; height: 330px; }
+  .chart.tall { height: 380px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
+  th, td { text-align: right; padding: 5px 10px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  th { color: var(--muted); font-weight: 500; }
+  th:first-child, td:first-child { text-align: left; }
+  .tag { display: inline-block; background: #1d3b2a; color: #5ad8a6; border-radius: 5px; padding: 1px 7px; font-size: 11px; margin-left: 6px; }
+  footer { color: var(--muted); font-size: 12px; margin-top: 22px; line-height: 1.7; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Monolix 无头建模报告 — Balan 体外溶出 Hill 模型</h1>
+  <div class="sub">
+    项目：<code>balan_diss_hill.mlxtran</code>（MonolixSuite 2024R1）·
+    结构模型：<code>Fdiss = EMAX·t<sup>γ</sup> / (T50<sup>γ</sup> + t<sup>γ</sup>)</code> ·
+    协变量：FORM（制剂 1/2/3）对 T50、γ 的乘性效应 ·
+    运行方式：<code>monolix.sh --no-gui</code> · SAEM 耗时 0.71s（CPU 2s）
+  </div>
+</header>
+
+<div class="stats">
+  <div class="stat"><div class="k">制剂 / 观测</div><div class="v">3 <small>/ 54 obs · 无给药（体外）</small></div></div>
+  <div class="stat"><div class="k">SAEM 迭代</div><div class="v">19 + 2 <small>探索 + 平滑（均 Autostop）</small></div></div>
+  <div class="stat"><div class="k">模型判据</div><div class="v">BIC 179.0 <small>OFV 169.2 · AIC 187.2</small></div></div>
+  <div class="stat"><div class="k">FORM 协变量效应</div><div class="v">4/4 <small>Wald 检验全部 p&lt;1e-4</small></div></div>
+  <div class="stat"><div class="k">误差模型</div><div class="v">a = 1.16 <small>加性为主（b ≈ 0）</small></div></div>
+</div>
+
+<div class="grid">
+
+  <div class="card wide">
+    <h3>① 观测数据与个体拟合 — 三个制剂的溶出曲线</h3>
+    <div class="desc">散点 = 实测溶出率（%），实线 = 个体预测（indivPred_SAEM）。Hill 函数同时捕捉了
+      FORM 1 的快速溶出（T50 = 0.55 h）与 FORM 3 的缓释拖尾（T50 = 4.59 h）。</div>
+    <div class="chart tall" id="cFits"></div>
+  </div>
+
+  <div class="card">
+    <h3>② 拟合优度 Goodness-of-Fit</h3>
+    <div class="desc">观测值 vs 群体预测（popPred，无协变量校正）与个体预测（含 FORM 效应）。
+      个体预测贴近 y=x 对角线 → FORM 协变量效应解释了制剂间差异。</div>
+    <div class="chart" id="cGof"></div>
+  </div>
+
+  <div class="card">
+    <h3>③ 个体加权残差 IWRES</h3>
+    <div class="desc">indWRes_SAEM vs 时间。残差围绕 0 线随机分布、无系统性趋势 →
+      Hill 结构模型与加性误差模型设定合理。</div>
+    <div class="chart" id="cIwres"></div>
+  </div>
+
+  <div class="card">
+    <h3>④ 制剂间参数对比（个体估计）</h3>
+    <div class="desc">T50 随制剂序号单调增大（0.55 → 2.28 → 4.59 h，乘性效应 exp(β)）；
+      γ 略有增大（1.52 → 1.80），溶出曲线更陡。EMAX 共享 = 101.2%。</div>
+    <div class="chart" id="cForm"></div>
+  </div>
+
+  <div class="card">
+    <h3>⑤ 固定效应相关性矩阵（线性化 FIM）</h3>
+    <div class="desc">T50_pop 与其 FORM 效应 β 强负相关（|r| ≈ 0.88–0.91）属协变量模型常态
+      （基线与增量此消彼长）；a、b 间 −0.90 反映加性/比例误差在低浓度端难以区分。</div>
+    <div class="chart tall" id="cCorr"></div>
+  </div>
+
+  <div class="card wide">
+    <h3>⑥ 群体参数估计 &amp; 精密度</h3>
+    <div class="desc">SAEM 点估计与线性化标准误（se_lin / rse_lin / 95% CI，来自 populationParameters.txt）；
+      协变量效应另列 Wald 检验 p 值（Tests/fixedEffects.txt）。主要参数 RSE ≤ 4%；
+      β_gamma 的 RSE ≈ 23% 在 γ 效应量较小时属预期。</div>
+    <table id="tabParams"></table>
+  </div>
+
+</div>
+
+<footer>
+  数据来源：MonolixSuite 2024R1 无头运行输出（predictions.txt / populationParameters.txt /
+  estimatedIndividualParameters.txt / FisherInformation/correlationEstimatesLin.txt /
+  LogLikelihood/logLikelihood.txt / Tests/fixedEffects.txt）。图表由 Apache ECharts 6 渲染。
+  说明：本项目未设个体间变异（体外制剂数据，每个 FORM 一条曲线），故无 EBE/收缩率图；
+  未运行 Bootstrap，精密度以线性化 FIM 为准（n=3 制剂、54 观测，结果解释需谨慎）。
+</footer>
+
+<script>
+const PRED = {
+  "1": [[0,0,0],[0.5,48.0538,46.8608],[1,69.6324,72.0258],[1.5,82.6102,83.0191],[2,89.5169,88.6476],[3,95.5737,93.9965],[4,97.5832,96.4166],[5,98.581,97.737],[6,98.9045,98.5462],[7,99.0588,99.0831],[8,99.2134,99.4601],[9,99.368,99.7366],[10,99.5225,99.9464],[11,99.8461,100.11],[12,99.8317,100.24],[15,99.7899,100.507],[18,99.9157,100.667],[22,99.8591,100.8]],
+  "2": [[0,0,0],[0.5,9.60548,6.35723],[1,21.5718,18.9685],[1.5,32.5257,32.6027],[2,42.8054,44.7818],[3,60.329,62.7966],[4,73.3002,74.0709],[5,81.7179,81.2122],[6,86.9312,85.9167],[7,90.2898,89.1474],[8,92.4683,91.4505],[9,94.3089,93.1461],[10,95.307,94.4293],[11,96.1361,95.4235],[12,96.7963,96.2092],[15,98.1032,97.7842],[18,99.0725,98.7018],[22,99.8595,99.4325]],
+  "3": [[0,0,0],[0.5,1.17409,1.84207],[1,4.70805,6.13189],[1.5,11.2778,11.9385],[2,18.3537,18.5466],[3,31.8305,32.1345],[4,44.1261,44.3636],[5,54.7363,54.4762],[6,63.154,62.5479],[7,69.8853,68.9193],[8,74.9307,73.9532],[9,78.7945,77.9576],[10,81.479,81.1732],[11,83.6572,83.7825],[12,85.8354,85.9222],[15,88.9969,90.4287],[18,90.8094,93.196],[22,92.6078,95.4769]]
+};
+const POP = [[0.5,46.8608],[1,72.0258],[1.5,83.0191],[2,88.6476],[3,93.9965],[4,96.4166],[5,97.737],[6,98.5462],[7,99.0831],[8,99.4601],[9,99.7366],[10,99.9464],[11,100.11],[12,100.24],[15,100.507],[18,100.667],[22,100.8]];
+const IWRES = [[0.5,1.02957,"1"],[1,-2.06559,"1"],[1.5,-0.352919,"1"],[2,0.750231,"1"],[3,1.36116,"1"],[4,1.0068,"1"],[5,0.728418,"1"],[6,0.309191,"1"],[7,-0.0209354,"1"],[8,-0.212915,"1"],[9,-0.318145,"1"],[10,-0.365862,"1"],[11,-0.227729,"1"],[12,-0.352672,"1"],[15,-0.618603,"1"],[18,-0.648457,"1"],[22,-0.811636,"1"],
+[0.5,2.80334,"2"],[1,2.24669,"2"],[1.5,-0.0664853,"2"],[2,-1.70572,"2"],[3,-2.12959,"2"],[4,-0.665156,"2"],[5,0.436454,"2"],[6,0.875516,"2"],[7,0.985925,"2"],[8,0.878395,"2"],[9,1.0035,"2"],[10,0.757445,"2"],[11,0.615039,"2"],[12,0.506659,"2"],[15,0.275342,"2"],[18,0.319907,"2"],[22,0.368547,"2"],
+[0.5,-0.576486,"3"],[1,-1.22882,"3"],[1.5,-0.570216,"3"],[2,-0.16645,"3"],[3,-0.26234,"3"],[4,-0.204997,"3"],[5,0.224483,"3"],[6,0.523072,"3"],[7,0.833692,"3"],[8,0.843608,"3"],[9,0.72231,"3"],[10,0.263938,"3"],[11,-0.108117,"3"],[12,-0.0748953,"3"],[15,-1.2357,"3"],[18,-2.05971,"3"],[22,-2.47615,"3"]];
+const PARAMS = [
+  {name:"T50_pop", value:0.551048, se:0.0139831, rse:2.54, ci:[0.524324,0.579133], note:"FORM 1 基线（h）"},
+  {name:"beta_T50_FORM_2", value:1.41836, se:0.0286631, rse:2.02, ci:[1.36219,1.47454], wald:49.48, p:"<2.2e-16"},
+  {name:"beta_T50_FORM_3", value:2.11971, se:0.0276752, rse:1.31, ci:[2.06547,2.17395], wald:76.59, p:"<2.2e-16"},
+  {name:"gamma_pop", value:1.51804, se:0.0592213, rse:3.90, ci:[1.40642,1.63852], note:"Hill 指数基线"},
+  {name:"beta_gamma_FORM_2", value:0.160904, se:0.0380671, rse:23.66, ci:[0.0862938,0.235514], wald:4.23, p:"2.4e-05"},
+  {name:"beta_gamma_FORM_3", value:0.169642, se:0.0390930, rse:23.04, ci:[0.0930208,0.246263], wald:4.34, p:"1.4e-05"},
+  {name:"EMAX_pop", value:101.173, se:0.382210, rse:0.38, ci:[100.427,101.925], note:"平台溶出率（%）"},
+  {name:"a", value:1.15871, se:0.259997, rse:22.44, ci:[0.75786,1.77157], note:"加性误差"},
+  {name:"b", value:2.22e-16, se:0.00331761, rse:1.49e15, ci:[0,1.08e-11], note:"比例误差 ≈ 0"}
+];
+const COR = {
+  names: ["T50_pop","β_T50_F2","β_T50_F3","γ_pop","β_γ_F2","β_γ_F3","EMAX_pop","a","b"],
+  m: [[1,-0.8798,-0.9117,0.4913,-0.5099,-0.4941,0.0247,0,0],
+      [-0.8798,1,0.8423,-0.5579,0.5822,0.5232,0.1851,0,0],
+      [-0.9117,0.8423,1,-0.5661,0.5305,0.5871,0.1721,0,0],
+      [0.4913,-0.5579,-0.5661,1,-0.8542,-0.8911,-0.5949,0,0],
+      [-0.5099,0.5822,0.5305,-0.8542,1,0.7939,0.3241,0,0],
+      [-0.4941,0.5232,0.5871,-0.8911,0.7939,1,0.4154,0,0],
+      [0.0247,0.1851,0.1721,-0.5949,0.3241,0.4154,1,0,0],
+      [0,0,0,0,0,0,0,1,-0.9034],
+      [0,0,0,0,0,0,0,-0.9034,1]]
+};
+
+const C = { accent:'#5b8ff9', green:'#5ad8a6', yellow:'#f6bd16', red:'#e86452',
+  purple:'#945fb9', cyan:'#6dc8ec', orange:'#ff9845', teal:'#1e9493' };
+const formColor = { "1": C.accent, "2": C.green, "3": C.orange };
+const baseAxis = { axisLine:{lineStyle:{color:'#3a4666'}}, axisLabel:{color:'#8b98b8'}, splitLine:{lineStyle:{color:'#1e2740'}} };
+const baseTip = { backgroundColor:'#101827', borderColor:'#263049', textStyle:{color:'#e6edf3', fontSize:12} };
+const baseGrid = { left:52, right:20, top:42, bottom:40 };
+
+function mk(id, option) {
+  const el = document.getElementById(id);
+  const chart = echarts.init(el, null, { renderer:'canvas' });
+  chart.setOption(option);
+  window.addEventListener('resize', () => chart.resize());
+  return chart;
+}
+
+/* ① 个体拟合 */
+const fitsSeries = [];
+for (const id of ["1","2","3"]) {
+  fitsSeries.push({
+    name:`FORM ${id} 观测`, type:'scatter', symbolSize:8,
+    itemStyle:{ color: formColor[id], opacity:.9 },
+    data: PRED[id].map(r => [r[0], r[1]])
+  });
+  fitsSeries.push({
+    name:`FORM ${id} 拟合`, type:'line', showSymbol:false, symbol:'none',
+    lineStyle:{ color: formColor[id], width:2.2 }, color: formColor[id],
+    data: PRED[id].map(r => [r[0], r[2]]), smooth: 0.15, z: 5
+  });
+}
+fitsSeries.push({
+  name:'PopPred（无协变量）', type:'line', symbol:'none',
+  lineStyle:{ color:'#8b98b8', width:1.2, type:'dashed' }, color:'#8b98b8',
+  data: POP, z: 1
+});
+mk('cFits', {
+  tooltip: { trigger:'item', ...baseTip,
+    formatter: p => `${p.seriesName}<br/>t = ${p.value[0]} h · 溶出 = ${(+p.value[1]).toFixed(2)}%` },
+  legend: { top:0, textStyle:{color:'#8b98b8', fontSize:11} },
+  grid: baseGrid,
+  xAxis: { name:'Time (h)', type:'value', ...baseAxis },
+  yAxis: { name:'Dissolved (%)', type:'value', min:0, max:105, ...baseAxis },
+  series: fitsSeries
+});
+
+/* ② GOF */
+const gofPop = [], gofInd = [];
+for (const id of ["1","2","3"]) for (const r of PRED[id]) {
+  if (r[0] === 0) continue;
+  const pop = POP.find(p => p[0] === r[0])[1];
+  gofPop.push([pop, r[1]]); gofInd.push([r[2], r[1]]);
+}
+mk('cGof', {
+  tooltip: { trigger:'item', ...baseTip,
+    formatter: p => `${p.seriesName}<br/>pred = ${(+p.value[0]).toFixed(2)}<br/>obs = ${(+p.value[1]).toFixed(2)}` },
+  legend: { top:0, textStyle:{color:'#8b98b8', fontSize:11} },
+  grid: baseGrid,
+  xAxis: { name:'Predictions (%)', type:'value', min:0, max:105, ...baseAxis },
+  yAxis: { name:'Observations (%)', type:'value', min:0, max:105, ...baseAxis },
+  series: [
+    { name:'obs vs popPred', type:'scatter', symbolSize:6, itemStyle:{color:C.red, opacity:.5}, data:gofPop },
+    { name:'obs vs indivPred', type:'scatter', symbolSize:6, itemStyle:{color:C.green, opacity:.8}, data:gofInd },
+    { name:'y = x', type:'line', symbol:'none', data:[[0,0],[105,105]],
+      lineStyle:{color:'#8b98b8', type:'dashed', width:1.2}, silent:true }
+  ]
+});
+
+/* ③ IWRES */
+mk('cIwres', {
+  tooltip: { trigger:'item', ...baseTip,
+    formatter: p => `FORM ${p.value[2]} · t = ${p.value[0]} h<br/>IWRES = ${(+p.value[1]).toFixed(3)}` },
+  grid: baseGrid,
+  xAxis: { name:'Time (h)', type:'value', ...baseAxis },
+  yAxis: { name:'IWRES', type:'value', ...baseAxis },
+  series: [{
+    type:'scatter', symbolSize:8, data: IWRES,
+    itemStyle:{ color: p => p.value[1] > 0 ? C.yellow : C.purple, opacity:.85 },
+    markLine: { silent:true, symbol:'none', lineStyle:{color:'#8b98b8', type:'dashed'},
+      label:{color:'#8b98b8'}, data:[{ yAxis:0 }] }
+  }]
+});
+
+/* ④ 制剂间参数对比 */
+mk('cForm', {
+  tooltip: { trigger:'axis', ...baseTip },
+  legend: { top:0, textStyle:{color:'#8b98b8', fontSize:11} },
+  grid: { ...baseGrid, bottom:52 },
+  xAxis: { type:'category', data:['FORM 1','FORM 2','FORM 3'],
+    axisLabel:{color:'#8b98b8'}, axisLine:{lineStyle:{color:'#3a4666'}} },
+  yAxis: { name:'值', type:'value', ...baseAxis },
+  series: [
+    { name:'T50 (h)', type:'bar', barGap:'12%', data:[0.551,2.276,4.590],
+      itemStyle:{ color: p => formColor[String(p.dataIndex+1)] },
+      label:{ show:true, position:'top', color:'#e6edf3', fontSize:11,
+        formatter: p => p.value.toFixed(2) } },
+    { name:'γ (Hill)', type:'bar', data:[1.518,1.783,1.799],
+      itemStyle:{ color:'#6dc8ec', opacity:.8 },
+      label:{ show:true, position:'top', color:'#8b98b8', fontSize:11,
+        formatter: p => p.value.toFixed(2) } }
+  ]
+});
+
+/* ⑤ 相关性热图 */
+const corData = [];
+COR.names.forEach((rowName, i) => COR.names.forEach((colName, j) => {
+  corData.push([j, i, COR.m[i][j]]);
+}));
+mk('cCorr', {
+  tooltip: { ...baseTip,
+    formatter: p => `${COR.names[p.value[1]]} × ${COR.names[p.value[0]]}<br/>r = ${p.value[2].toFixed(3)}` },
+  grid: { left:92, right:64, top:40, bottom:56 },
+  xAxis: { type:'category', data:COR.names, axisLabel:{color:'#8b98b8', rotate:35, fontSize:10},
+    axisLine:{lineStyle:{color:'#3a4666'}}, splitArea:{show:true} },
+  yAxis: { type:'category', data:COR.names, axisLabel:{color:'#8b98b8', fontSize:10},
+    axisLine:{lineStyle:{color:'#3a4666'}}, splitArea:{show:true} },
+  visualMap: { min:-1, max:1, calculable:true, orient:'vertical', right:0, top:'center',
+    inRange:{ color:['#e86452','#161d2e','#5b8ff9'] },
+    textStyle:{color:'#8b98b8'} },
+  series: [{ type:'heatmap', data:corData,
+    label:{ show:true, fontSize:9, color:'#e6edf3',
+      formatter: p => p.value[2].toFixed(2) },
+    emphasis:{ itemStyle:{ shadowBlur:8, shadowColor:'rgba(0,0,0,.5)' } } }]
+});
+
+/* ⑥ 参数表 */
+const fmt = (x,d=4) => x===null||x===undefined||Number.isNaN(x) ? '—' : (+x).toPrecision(d);
+let html = `<tr><th>参数</th><th>SAEM 估计</th><th>SE (lin)</th><th>RSE%</th><th>95% CI</th><th>Wald 统计量</th><th>p 值</th><th>备注</th></tr>`;
+for (const p of PARAMS) {
+  const sig = p.p ? '<span class="tag">显著</span>' : '';
+  html += `<tr><td>${p.name}</td><td>${fmt(p.value)}</td><td>${fmt(p.se,3)}</td>
+    <td>${fmt(p.rse,3)}</td><td>[${fmt(p.ci[0],3)}, ${fmt(p.ci[1],3)}]</td>
+    <td>${p.wald ? fmt(p.wald,3) : '—'}</td><td>${p.p ? p.p + sig : '—'}</td>
+    <td>${p.note || ''}</td></tr>`;
+}
+document.getElementById('tabParams').innerHTML = html;
+</script>
+</body>
+</html>

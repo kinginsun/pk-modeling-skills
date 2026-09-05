@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Theophylline NLME — Monolix 报告</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117; --card: #161d2e; --border: #263049;
+    --text: #e6edf3; --muted: #8b98b8; --accent: #5b8ff9; --ok: #5ad8a6; --warn: #f0b429;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: "PingFang SC", -apple-system, "Segoe UI", sans-serif; padding: 28px 32px 48px; }
+  header { margin-bottom: 22px; }
+  header h1 { font-size: 22px; font-weight: 650; letter-spacing: .3px; }
+  header .sub { color: var(--muted); font-size: 13px; margin-top: 6px; line-height: 1.7; }
+  header .sub code { background: #1f2937; padding: 1px 6px; border-radius: 5px; font-size: 12px; color: #9ecbff; }
+  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 18px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; }
+  .stat .k { color: var(--muted); font-size: 12px; }
+  .stat .v { font-size: 22px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .stat .v small { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 4px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px 12px; }
+  .card.wide { grid-column: span 2; }
+  .card h3 { font-size: 14px; font-weight: 600; }
+  .card .desc { color: var(--muted); font-size: 12px; margin: 3px 0 8px; line-height: 1.6; }
+  .chart { width: 100%; height: 330px; }
+  .chart.tall { height: 400px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
+  th, td { text-align: right; padding: 5px 10px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  th { color: var(--muted); font-weight: 500; }
+  th:first-child, td:first-child { text-align: left; }
+  .tag { display: inline-block; background: #1d3b2a; color: var(--ok); border-radius: 5px; padding: 1px 7px; font-size: 11px; margin-left: 6px; }
+  .warn { background: #3b2f1d; color: var(--warn); }
+  footer { color: var(--muted); font-size: 12px; margin-top: 22px; line-height: 1.7; }
+  .sel { margin: 4px 0 8px; }
+  .sel label { color: var(--muted); font-size: 12px; margin-right: 8px; }
+  .sel select { background: #1f2937; color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; }
+  @media (max-width: 960px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+    .grid { grid-template-columns: 1fr; }
+    .card.wide { grid-column: span 1; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Theophylline 口服 PK — Monolix NLME 建模报告</h1>
+  <div class="sub">
+    数据：<code>theophylline_data.csv</code>（12 人 · 单次口服 · CONC mg/L，AMT 疑为 mg/kg）·
+    结构模型：<code>lib:oral1_1cpt_kaVCl</code>（一级吸收 1 房室）·
+    误差：combined1(a,b) · MonolixSuite 2024R1 · <code>monolix.sh --no-gui</code>
+  </div>
+</header>
+
+<div class="stats">
+  <div class="stat"><div class="k">受试者 / 观测 / 剂量</div><div class="v">12 <small>/ 120 obs / 12 doses</small></div></div>
+  <div class="stat"><div class="k">Base 模型判据 (IS)</div><div class="v">BIC 361.4 <small>OFV 341.5 · AIC 357.5</small></div></div>
+  <div class="stat"><div class="k">典型 t½ = ln2·V/Cl</div><div class="v">8.0 h <small>ka=1.55 h⁻¹</small></div></div>
+  <div class="stat"><div class="k">COSSAC 最优（中心化）</div><div class="v">ka~(WT−70) <small>Wald p=0.023</small></div></div>
+  <div class="stat"><div class="k">SAEM 迭代</div><div class="v">218+111 <small>Autostop · ~1.4 s</small></div></div>
+</div>
+
+<div class="grid">
+
+  <div class="card wide">
+    <h3>① 个体拟合 — 观测浓度 vs IPRED</h3>
+    <div class="desc">散点 = 实测 CONC，实线 = 个体预测（indivPred_SAEM，Base 模型）。可选受试者；整体峰浓度约 1–2 h，与 ka≈1.55 h⁻¹ 一致。</div>
+    <div class="sel"><label>受试者</label><select id="subjSel"></select></div>
+    <div class="chart tall" id="cFits"></div>
+  </div>
+
+  <div class="card">
+    <h3>② 拟合优度 GOF</h3>
+    <div class="desc">Obs vs popPred / IPRED。IPRED 贴近 y=x → 个体随机效应吸收了主要偏差；popPred 分散反映 IIV。</div>
+    <div class="chart" id="cGof"></div>
+  </div>
+
+  <div class="card">
+    <h3>③ IWRES vs 时间</h3>
+    <div class="desc">个体加权残差围绕 0 线随机分布、无明显时间趋势 → 结构模型与 combined 误差设定合理。</div>
+    <div class="chart" id="cIwres"></div>
+  </div>
+
+  <div class="card">
+    <h3>④ 模型比较（Importance Sampling）</h3>
+    <div class="desc">COSSAC 选出 ka~WEIGHT；中心化后 OFV/BIC 优于 Base，且 ka_pop 可解释（WT=70 时）。异速生长模型 BICc 未优于 Base（n=12 功效有限）。</div>
+    <div class="chart" id="cModels"></div>
+  </div>
+
+  <div class="card">
+    <h3>⑤ 个体参数 vs 体重</h3>
+    <div class="desc">Base 模型 EBE：ka 随 WEIGHT 有上升趋势（与 COSSAC 一致）；V、Cl（按体重归一剂量尺度）与 WEIGHT 关系弱。</div>
+    <div class="chart" id="cCov"></div>
+  </div>
+
+  <div class="card">
+    <h3>⑥ η（EBE）按受试者</h3>
+    <div class="desc">eta_ka 跨度最大（ω_ka≈66% CV）；eta_V 收缩约 14%。负收缩偶发于条件均值抽样波动，属小样本常态。</div>
+    <div class="chart" id="cEta"></div>
+  </div>
+
+  <div class="card">
+    <h3>⑦ 参数相关性（线性化 FIM）</h3>
+    <div class="desc">a 与 b 强负相关（≈−0.90）属 combined 误差常态。固定效应间相关温和，未见 |r|&gt;0.95 的过参数化信号。</div>
+    <div class="chart tall" id="cCorr"></div>
+  </div>
+
+  <div class="card">
+    <h3>⑧ COSSAC 搜索路径（线性化 −2LL）</h3>
+    <div class="desc">Best = Model 3（ka~WEIGHT）。Model 4 再加 V~WEIGHT 虽 OFV 更低，但 BICc 回升 → 停止。</div>
+    <div class="chart" id="cMb"></div>
+  </div>
+
+  <div class="card wide">
+    <h3>⑨ 群体参数 — Base 与中心化最终模型</h3>
+    <div class="desc">点估计 + 线性化 SE / RSE / 95% CI。中心化模型 β_ka_cWEIGHT ≈ 0.042（每 +1 kg，ka 乘以 e^0.042≈1.043），Wald p=0.023。
+      <span class="tag">推荐报告 Base 或中心化最终模型</span>
+      <span class="tag warn">勿直接报告未中心化 ka~WEIGHT（ka_pop RSE&gt;500%）</span>
+    </div>
+    <table id="tabParams"></table>
+  </div>
+
+</div>
+
+<footer>
+  项目文件：<code>theophylline_project.mlxtran</code>（Base）、
+  <code>theophylline_final_ka_cWT.mlxtran</code>（最终）、
+  <code>theophylline_allometric.mlxtran</code>（对照）。
+  结果目录：同名文件夹下的 populationParameters.txt / predictions.txt / LogLikelihood / FisherInformation / ModelBuilding。
+  AMT 量级与 V≈0.46 表明剂量单位很可能是 mg/kg（经典 theophylline 数据集）。
+  SEX 在 COSSAC 中未入选。图表：Apache ECharts 6 · 无头 SAEM。
+</footer>
+
+<script>
+const D = {"by_id": {"1": [[0.25, 2.84, 3.6946], [0.57, 6.57, 6.5445], [1.12, 10.5, 8.7698], [2.02, 9.66, 9.5422], [3.82, 8.58, 8.9222], [5.1, 8.36, 8.3127], [7.03, 7.47, 7.4548], [9.05, 6.89, 6.6502], [12.12, 5.94, 5.5903], [24.37, 3.28, 2.7964]], "2": [[0.27, 1.72, 4.0142], [0.52, 7.91, 6.1328], [1.0, 8.31, 7.9386], [1.92, 8.33, 8.3194], [3.5, 6.85, 7.312], [5.02, 6.08, 6.3092], [7.03, 5.4, 5.1828], [9.0, 4.55, 4.2739], [12.0, 3.01, 3.1864], [24.3, 0.9, 0.956]], "3": [[0.27, 4.4, 4.379], [0.58, 6.9, 6.837], [1.02, 8.2, 8.1354], [2.02, 7.8, 8.2257], [3.62, 7.5, 7.2462], [5.08, 6.2, 6.3937], [7.07, 5.3, 5.3888], [9.0, 4.9, 4.5653], [12.15, 3.7, 3.4827], [24.17, 1.05, 1.2398]], "4": [[0.35, 1.89, 3.3639], [0.6, 4.6, 4.9791], [1.07, 8.6, 6.8498], [2.13, 8.38, 8.1776], [3.5, 7.54, 7.8771], [5.02, 6.88, 7.0404], [7.02, 5.78, 5.956], [9.02, 5.33, 5.0226], [11.98, 4.19, 3.9006], [24.65, 1.15, 1.3216]], "5": [[0.3, 2.02, 4.0166], [0.52, 5.63, 6.0145], [1.0, 11.4, 8.5869], [2.02, 9.33, 10.0757], [3.5, 8.74, 9.44], [5.02, 7.56, 8.3022], [7.02, 7.09, 6.9255], [9.1, 5.9, 5.7261], [12.0, 4.37, 4.3916], [24.35, 1.57, 1.4186]], "6": [[0.27, 1.29, 2.0394], [0.58, 3.08, 3.6675], [1.15, 6.44, 5.3582], [2.03, 6.32, 6.2144], [3.57, 5.53, 5.9507], [5.0, 4.94, 5.2794], [7.0, 4.02, 4.3645], [9.22, 3.46, 3.5155], [12.1, 2.78, 2.6531], [23.85, 0.92, 0.8413]], "7": [[0.25, 0.85, 1.5317], [0.5, 2.35, 2.7813], [1.02, 5.02, 4.6686], [2.02, 6.58, 6.4987], [3.48, 7.09, 7.0343], [5.0, 6.66, 6.5863], [6.98, 5.25, 5.6391], [9.0, 4.39, 4.6923], [12.05, 3.53, 3.5119], [24.22, 1.15, 1.0898]], "8": [[0.25, 3.05, 2.6341], [0.52, 3.05, 4.5525], [0.98, 7.31, 6.4015], [2.02, 7.56, 7.4986], [3.53, 6.59, 6.9652], [5.05, 5.88, 6.1083], [7.15, 4.73, 5.0392], [9.07, 4.57, 4.2215], [12.1, 3.0, 3.192], [24.12, 1.25, 1.053]], "9": [[0.3, 7.37, 6.9597], [0.63, 9.03, 7.661], [1.05, 7.14, 7.4803], [2.02, 6.33, 6.8751], [3.53, 5.66, 6.0217], [5.02, 5.67, 5.2835], [7.17, 4.24, 4.3749], [8.8, 4.11, 3.7917], [11.6, 3.16, 2.9655], [24.43, 1.12, 0.9616]], "10": [[0.37, 2.89, 2.9359], [0.77, 5.22, 5.2194], [1.02, 6.41, 6.2857], [2.05, 7.83, 8.7483], [3.55, 10.21, 9.4849], [5.05, 9.18, 9.0375], [7.08, 8.02, 7.9996], [9.38, 7.14, 6.8239], [12.1, 5.68, 5.6214], [23.7, 2.42, 2.446]], "11": [[0.25, 4.86, 5.0327], [0.5, 7.24, 7.0422], [0.98, 8.0, 7.9591], [1.98, 6.81, 7.4732], [3.6, 5.87, 6.3578], [5.02, 5.22, 5.5114], [7.03, 4.45, 4.5022], [9.03, 3.62, 3.6815], [12.12, 2.69, 2.6977], [24.08, 0.86, 0.8098]], "12": [[0.25, 1.25, 2.4511], [0.5, 3.96, 4.3555], [1.0, 7.82, 6.944], [2.0, 9.72, 9.1644], [3.52, 9.75, 9.3536], [5.07, 8.57, 8.4399], [7.07, 6.59, 7.0754], [9.03, 6.11, 5.8864], [12.05, 4.57, 4.4169], [24.15, 1.17, 1.3937]]}, "gof": [[2.84, 2.7867, 3.6946, "1"], [6.57, 5.0023, 6.5445, "1"], [10.5, 6.7888, 8.7698, "1"], [9.66, 7.3819, 9.5422, "1"], [8.58, 6.6336, 8.9222, "1"], [8.36, 5.9547, 8.3127, "1"], [7.47, 5.0391, 7.4548, "1"], [6.89, 4.229, 6.6502, "1"], [5.94, 3.2399, 5.5903, "1"], [3.28, 1.119, 2.7964, "1"], [1.72, 3.2436, 4.0142, "2"], [7.91, 5.179, 6.1328, "2"], [8.31, 7.1618, 7.9386, "2"], [8.33, 8.08, 8.3194, "2"], [6.85, 7.4486, 7.312, "2"], [6.08, 6.5626, 6.3092, "2"], [5.4, 5.5154, 5.1828, "2"], [4.55, 4.6489, 4.2739, "2"], [3.01, 3.5833, 3.1864, "2"], [0.9, 1.2323, 0.956, "2"], [4.4, 3.3394, 4.379, "3"], [6.9, 5.6948, 6.837, "3"], [8.2, 7.4244, 8.1354, "3"], [7.8, 8.3184, 8.2257, "3"], [7.5, 7.5964, 7.2462, "3"], [6.2, 6.7217, 6.3937, "3"], [5.3, 5.6587, 5.3888, "3"], [4.9, 4.7862, 4.5653, "3"], [3.7, 3.6414, 3.4827, "3"], [1.05, 1.2831, 1.2398, "3"], [1.89, 3.9551, 3.3639, "4"], [4.6, 5.6408, 4.9791, "4"], [8.6, 7.3266, 6.8498, "4"], [8.38, 8.0678, 8.1776, "4"], [7.54, 7.4486, 7.8771, "4"], [6.88, 6.5626, 7.0404, "4"], [5.78, 5.5202, 5.956, "4"], [5.33, 4.6408, 5.0226, "4"], [4.19, 3.5895, 3.9006, "4"], [1.15, 1.1954, 1.3216, "4"], [2.02, 4.6903, 4.0166, "5"], [5.63, 6.8974, 6.0145, "5"], [11.4, 9.5382, 8.5869, "5"], [9.33, 10.7607, 10.0757, "5"], [8.74, 9.9201, 9.44, "5"], [7.56, 8.7402, 8.3022, "5"], [7.09, 7.3519, 6.9255, "5"], [5.9, 6.1379, 5.7261, "5"], [4.37, 4.7722, 4.3916, "5"], [1.57, 1.634, 1.4186, "5"], [1.29, 2.9487, 2.0394, "6"], [3.08, 5.0285, 3.6675, "6"], [6.44, 6.8069, 5.3582, "6"], [6.32, 7.3446, 6.2144, "6"], [5.53, 6.7343, 5.9507, "6"], [4.94, 5.9762, 5.2794, "6"], [4.02, 5.0271, 4.3645, "6"], [3.46, 4.1463, 3.5155, "6"], [2.78, 3.2294, 2.6531, "6"], [0.92, 1.1648, 0.8413, "6"], [0.85, 3.4314, 1.5317, "7"], [2.35, 5.6846, 2.7813, "7"], [5.02, 8.1127, 4.6686, "7"], [6.58, 9.0896, 6.4987, "7"], [7.09, 8.3927, 7.0343, "7"], [6.66, 7.3956, 6.5863, "7"], [5.25, 6.2318, 5.6391, "7"], [4.39, 5.2299, 4.6923, "7"], [3.53, 4.0137, 3.5119, "7"], [1.15, 1.3959, 1.0898, "7"], [3.05, 3.1403, 2.6341, "8"], [3.05, 5.332, 4.5525, "8"], [7.31, 7.3203, 6.4015, "8"], [7.56, 8.3184, 7.4986, "8"], [6.59, 7.6506, 6.9652, "8"], [5.88, 6.7391, 6.1083, "8"], [4.73, 5.6196, 5.0392, "8"], [4.57, 4.7572, 4.2215, "8"], [3.0, 3.6572, 3.192, "8"], [1.25, 1.2886, 1.053, "8"], [7.37, 2.4812, 6.9597, "9"], [9.03, 4.0848, 7.661, "9"], [7.14, 5.1304, 7.4803, "9"], [6.33, 5.6925, 6.8751, "9"], [5.66, 5.2355, 6.0217, "9"], [5.67, 4.6236, 5.2835, "9"], [4.24, 3.839, 4.3749, "9"], [4.11, 3.3327, 3.7917, "9"], [3.16, 2.6137, 2.9655, "9"], [1.12, 0.8584, 0.9616, "9"], [2.89, 5.1479, 2.9359, "10"], [5.22, 8.0342, 5.2194, "10"], [6.41, 9.0141, 6.2857, "10"], [7.83, 10.097, 8.7483, "10"], [10.21, 9.2743, 9.4849, "10"], [9.18, 8.1821, 9.0375, "10"], [8.02, 6.8644, 7.9996, "10"], [7.14, 5.6226, 6.8239, "10"], [5.68, 4.4404, 5.6214, "10"], [2.42, 1.6226, 2.446, "10"], [4.86, 3.4106, 5.0327, "11"], [7.24, 5.6501, 7.0422, "11"], [8.0, 7.9505, 7.9591, "11"], [6.81, 9.0361, 7.4732, "11"], [5.87, 8.2636, 6.3578, "11"], [5.22, 7.3381, 5.5114, "11"], [4.45, 6.1673, 4.5022, "11"], [3.62, 5.1847, 3.6815, "11"], [2.69, 3.9652, 2.6977, "11"], [0.86, 1.4044, 0.8098, "11"], [1.25, 3.6741, 2.4511, "12"], [3.96, 6.0865, 4.3555, "12"], [7.82, 8.6267, 6.944, "12"], [9.72, 9.7334, 9.1644, "12"], [9.75, 8.9581, 9.3536, "12"], [8.57, 7.8711, 8.4399, "12"], [6.59, 6.6206, 7.0754, "12"], [6.11, 5.5852, 5.8864, "12"], [4.57, 4.2975, 4.4169, "12"], [1.17, 1.5037, 1.3937, "12"]], "iwres": [[0.25, -1.3333, "1"], [0.57, 0.0322, "1"], [1.12, 1.9089, "1"], [2.02, 0.1244, "1"], [3.82, -0.3743, "1"], [5.1, 0.0536, "1"], [7.03, 0.0181, "1"], [9.05, 0.3015, "1"], [12.12, 0.4725, "1"], [24.37, 0.8143, "1"], [0.27, -3.4886, "2"], [0.52, 2.3127, "2"], [1.0, 0.4304, "2"], [1.92, 0.012, "2"], [3.5, -0.5566, "2"], [5.02, -0.2947, "2"], [7.03, 0.3022, "2"], [9.0, 0.4113, "2"], [12.0, -0.2872, "2"], [24.3, -0.1125, "2"], [0.27, 0.031, "3"], [0.58, 0.0782, "3"], [1.02, 0.074, "3"], [2.02, -0.4849, "3"], [3.62, 0.307, "3"], [5.08, -0.2477, "3"], [7.07, -0.1218, "3"], [9.0, 0.4876, "3"], [12.15, 0.345, "3"], [24.17, -0.3702, "3"], [0.35, -2.3634, "4"], [0.6, -0.5353, "4"], [1.07, 2.1717, "4"], [2.13, 0.2313, "4"], [3.5, -0.3921, "4"], [5.02, -0.1966, "4"], [7.02, -0.2318, "4"], [9.02, 0.4327, "4"], [11.98, 0.444, "4"], [24.65, -0.332, "4"], [0.3, -3.0354, "5"], [0.52, -0.5044, "5"], [1.0, 3.1369, "5"], [2.02, -0.7651, "5"], [3.5, -0.7436, "5"], [5.02, -0.8416, "5"], [7.02, 0.2031, "5"], [9.1, 0.2327, "5"], [12.0, -0.0319, "5"], [24.35, 0.2901, "5"], [0.27, -1.3518, "6"], [0.58, -0.9187, "6"], [1.15, 1.4861, "6"], [2.03, 0.1367, "6"], [3.57, -0.5543, "6"], [5.0, -0.469, "6"], [7.0, -0.5097, "6"], [9.22, -0.0879, "6"], [12.1, 0.2164, "6"], [23.85, 0.1601, "6"], [0.25, -1.2917, "7"], [0.5, -0.7271, "7"], [1.02, 0.508, "7"], [2.02, 0.1032, "7"], [3.48, 0.0683, "7"], [5.0, 0.0931, "7"], [6.98, -0.524, "7"], [9.0, -0.4361, "7"], [12.05, 0.0286, "7"], [24.22, 0.1193, "7"], [0.25, 0.7103, "8"], [0.52, -2.1909, "8"], [0.98, 1.161, "8"], [2.02, 0.0731, "8"], [3.53, -0.4621, "8"], [5.05, -0.2976, "8"], [7.15, -0.4348, "8"], [9.07, 0.5213, "8"], [12.1, -0.3124, "8"], [24.12, 0.3918, "8"], [0.3, 0.5055, "9"], [0.63, 1.6137, "9"], [1.05, -0.4056, "9"], [2.02, -0.6753, "9"], [3.53, -0.4743, "9"], [5.02, 0.5338, "9"], [7.17, -0.1994, "9"], [8.8, 0.4928, "9"], [11.6, 0.3227, "9"], [24.43, 0.318, "9"], [0.37, -0.0763, "10"], [0.77, 0.0008, "10"], [1.02, 0.1601, "10"], [2.05, -1.0144, "10"], [3.55, 0.7683, "10"], [5.05, 0.1548, "10"], [7.08, 0.0236, "10"], [9.38, 0.3929, "10"], [12.1, 0.0791, "10"], [23.7, -0.0451, "10"], [0.25, -0.2429, "11"], [0.5, 0.2424, "11"], [0.98, 0.0473, "11"], [1.98, -0.7909, "11"], [3.6, -0.6252, "11"], [5.02, -0.3959, "11"], [7.03, -0.0764, "11"], [9.03, -0.0961, "11"], [12.12, -0.0131, "11"], [24.08, 0.1025, "11"], [0.25, -2.0856, "12"], [0.5, -0.5856, "12"], [1.0, 1.0803, "12"], [2.0, 0.5993, "12"], [3.52, 0.4231, "12"], [5.07, 0.1463, "12"], [7.07, -0.5936, "12"], [9.03, 0.2959, "12"], [12.05, 0.2256, "12"], [24.15, -0.4297, "12"]], "indiv": [{"id": "1", "ka": 1.7051, "V": 0.3748, "Cl": 0.0212, "WEIGHT": 79.6, "SEX": "M"}, {"id": "2", "ka": 1.9877, "V": 0.4487, "Cl": 0.0439, "WEIGHT": 72.4, "SEX": "M"}, {"id": "3", "ka": 2.3205, "V": 0.4755, "Cl": 0.0409, "WEIGHT": 70.5, "SEX": "M"}, {"id": "4", "ka": 1.1845, "V": 0.4369, "Cl": 0.0373, "WEIGHT": 72.7, "SEX": "M"}, {"id": "5", "ka": 1.3455, "V": 0.4775, "Cl": 0.0437, "WEIGHT": 54.6, "SEX": "F"}, {"id": "6", "ka": 1.1231, "V": 0.506, "Cl": 0.0495, "WEIGHT": 80.0, "SEX": "M"}, {"id": "7", "ka": 0.6998, "V": 0.5123, "Cl": 0.0493, "WEIGHT": 64.6, "SEX": "F"}, {"id": "8", "ka": 1.3871, "V": 0.4978, "Cl": 0.0459, "WEIGHT": 70.5, "SEX": "M"}, {"id": "9", "ka": 6.9, "V": 0.3825, "Cl": 0.0336, "WEIGHT": 86.4, "SEX": "M"}, {"id": "10", "ka": 0.7608, "V": 0.4533, "Cl": 0.0325, "WEIGHT": 58.2, "SEX": "F"}, {"id": "11", "ka": 3.4308, "V": 0.555, "Cl": 0.0558, "WEIGHT": 65.0, "SEX": "F"}, {"id": "12", "ka": 0.8899, "V": 0.426, "Cl": 0.0406, "WEIGHT": 60.5, "SEX": "F"}], "etas": [{"id": "1", "ka": 0.0895, "V": -0.203, "Cl": -0.6351}, {"id": "2", "ka": 0.2375, "V": -0.0238, "Cl": 0.0942}, {"id": "3", "ka": 0.3887, "V": 0.0346, "Cl": 0.0224}, {"id": "4", "ka": -0.2779, "V": -0.0507, "Cl": -0.0688}, {"id": "5", "ka": -0.1498, "V": 0.0386, "Cl": 0.0894}, {"id": "6", "ka": -0.3376, "V": 0.0954, "Cl": 0.2104}, {"id": "7", "ka": -0.8072, "V": 0.1071, "Cl": 0.2084}, {"id": "8", "ka": -0.1223, "V": 0.0795, "Cl": 0.1387}, {"id": "9", "ka": 1.4535, "V": -0.1829, "Cl": -0.1756}, {"id": "10", "ka": -0.7209, "V": -0.0142, "Cl": -0.2073}, {"id": "11", "ka": 0.7764, "V": 0.1892, "Cl": 0.3334}, {"id": "12", "ka": -0.5626, "V": -0.0762, "Cl": 0.0163}], "corr": {"names": ["ka_pop", "V_pop", "Cl_pop", "omega_ka", "omega_V", "omega_Cl", "a", "b"], "mat": [[1.0, 0.128915, -0.0437932, 0.0, 0.0, 0.0, 0.0, 0.0], [0.128915, 1.0, -0.100945, 0.0, 0.0, 0.0, 0.0, 0.0], [-0.0437932, -0.100945, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0, -0.0133414, 0.000322691, -0.0073467, -0.00388023], [0.0, 0.0, 0.0, -0.0133414, 1.0, -0.00583304, -0.01156, -0.0333879], [0.0, 0.0, 0.0, 0.000322691, -0.00583304, 1.0, -0.0569924, 0.0385148], [0.0, 0.0, 0.0, -0.0073467, -0.01156, -0.0569924, 1.0, -0.903213], [0.0, 0.0, 0.0, -0.00388023, -0.0333879, 0.0385148, -0.903213, 1.0]]}, "models": [{"name": "Base", "note": "无协变量", "OFV": 341.485, "AIC": 357.485, "BIC": 361.364, "BICc": 372.877}, {"name": "ka ~ (WT−70)", "note": "COSSAC 最优 + 中心化", "OFV": 336.988, "AIC": 354.988, "BIC": 359.352, "BICc": 370.865}, {"name": "ka ~ WEIGHT", "note": "COSSAC 原始（未中心化）", "OFV": 336.906, "AIC": 354.906, "BIC": 359.27, "BICc": 370.783}, {"name": "V,Cl ~ log(WT/70)", "note": "异速生长假设", "OFV": 338.255, "AIC": 358.255, "BIC": 363.104, "BICc": 374.617}], "mb_hist": [{"model": 1, "cov": "none", "OFV": 339.51, "BICc": 370.9}, {"model": 2, "cov": "V~WEIGHT", "OFV": 336.94, "BICc": 370.81}, {"model": 3, "cov": "ka~WEIGHT", "OFV": 335.0, "BICc": 368.88}, {"model": 4, "cov": "ka+V~WEIGHT", "OFV": 333.11, "BICc": 369.47}, {"model": 5, "cov": "ka~WEIGHT + V~SEX", "OFV": 333.77, "BICc": 370.13}], "pop_base": [{"parameter": "ka_pop", "value": 1.55391769743443, "CV": null, "se": 0.320178102729753, "rse": 20.6045727684534, "lo": 1.05009, "hi": 2.29947}, {"parameter": "V_pop", "value": 0.459051148524761, "CV": null, "se": 0.0212953416275124, "rse": 4.63899103530154, "lo": 0.419216, "hi": 0.502672}, {"parameter": "Cl_pop", "value": 0.0398377361019958, "CV": null, "se": 0.00329353293188405, "rse": 8.26736972063793, "lo": 0.0339062, "hi": 0.046807}, {"parameter": "omega_ka", "value": 0.65559518023861, "CV": 73.2774078127677, "se": 0.146546637611056, "rse": 22.3532207112504, "lo": 0.429444, "hi": 1.00084}, {"parameter": "omega_V", "value": 0.131867041159948, "CV": 13.2442379560733, "se": 0.0387991661835641, "rse": 29.4229443857033, "lo": 0.0765223, "hi": 0.22724}, {"parameter": "omega_Cl", "value": 0.264357508570709, "CV": 26.9044112460505, "se": 0.062109883799209, "rse": 23.4946546950816, "lo": 0.169722, "hi": 0.411761}, {"parameter": "a", "value": 0.447687065658421, "CV": null, "se": 0.126249830183606, "rse": 28.2004640893362, "lo": 0.265141, "hi": 0.755913}, {"parameter": "b", "value": 0.0523009703708755, "CV": null, "se": 0.0240352737024764, "rse": 45.9556936172274, "lo": 0.0236048, "hi": 0.115883}], "pop_cwt": [{"parameter": "ka_pop", "value": 1.5490239657482, "CV": null, "se": 0.26386958613395, "rse": 17.0345709277969, "lo": 1.11701, "hi": 2.14812}, {"parameter": "beta_ka_cWEIGHT", "value": 0.0422014955361724, "CV": null, "se": 0.0185336685419222, "rse": 43.9170894454115, "lo": 0.00587617, "hi": 0.0785268}, {"parameter": "V_pop", "value": 0.455301641353179, "CV": null, "se": 0.0195812594601573, "rse": 4.30072235232029, "lo": 0.418545, "hi": 0.495286}, {"parameter": "Cl_pop", "value": 0.0402504279291081, "CV": null, "se": 0.00342626550457228, "rse": 8.51237037928356, "lo": 0.0340959, "hi": 0.0475159}, {"parameter": "omega_ka", "value": 0.528857361307885, "CV": 56.8084368140345, "se": 0.123150206710997, "rse": 23.2860910560915, "lo": 0.340779, "hi": 0.820738}, {"parameter": "omega_V", "value": 0.116826483468501, "CV": 11.7226243689925, "se": 0.0372000643017806, "rse": 31.8421501677833, "lo": 0.0651616, "hi": 0.209455}, {"parameter": "omega_Cl", "value": 0.273746331213602, "CV": 27.8955739080023, "se": 0.0634901203069264, "rse": 23.1930488439626, "lo": 0.176682, "hi": 0.424136}, {"parameter": "a", "value": 0.431617746234942, "CV": null, "se": 0.123818383433936, "rse": 28.6870464697108, "lo": 0.253552, "hi": 0.734737}, {"parameter": "b", "value": 0.0564230622352716, "CV": null, "se": 0.0238027467303131, "rse": 42.1862015057974, "lo": 0.0268609, "hi": 0.11852}], "wald": [{"param": "beta_ka_cWEIGHT", "stat": 2.27702, "p": 0.0228}], "meta": {"n_id": 12, "n_obs": 120, "n_dose": 12, "saem": "218 + 111 (Autostop)", "t12": 7.99, "ka": 1.554, "V": 0.459, "Cl": 0.0398}};
+const baseAxis = {
+  axisLine: { lineStyle: { color: '#3a4660' } },
+  axisLabel: { color: '#8b98b8', fontSize: 11 },
+  splitLine: { lineStyle: { color: '#1f2a40' } }
+};
+const palette = ['#5b8ff9','#5ad8a6','#f6bd16','#e8684a','#6dc8ec','#9270ca','#ff9d4d','#269a99','#ff99c3','#5d7092','#c2c8d5','#b6e3ff'];
+const charts = {};
+function init(id) {
+  const el = document.getElementById(id);
+  const c = echarts.init(el, null, { renderer: 'canvas' });
+  charts[id] = c;
+  return c;
+}
+window.addEventListener('resize', () => Object.values(charts).forEach(c => c.resize()));
+
+// KPI fillers already in HTML via python
+
+// Subject selector + fits
+const ids = Object.keys(D.by_id).sort((a,b)=>+a-+b);
+const sel = document.getElementById('subjSel');
+sel.innerHTML = '<option value="ALL">全部（小 multiples）</option>' + ids.map(id => `<option value="${id}">ID ${id}</option>`).join('');
+const cFits = init('cFits');
+function renderFits(mode) {
+  if (mode === 'ALL') {
+    // small multiples via grid — show all as overlay with legend
+    const series = [];
+    ids.forEach((id, i) => {
+      const rows = D.by_id[id];
+      series.push({
+        name: 'ID'+id+' obs', type: 'scatter', symbolSize: 7,
+        itemStyle: { color: palette[i%palette.length] },
+        data: rows.map(r => [r[0], r[1]]),
+        tooltip: { formatter: p => `ID${id}<br>t=${p.data[0]}h<br>obs=${p.data[1]}` }
+      });
+      series.push({
+        name: 'ID'+id+' IPRED', type: 'line', showSymbol: false, smooth: 0.2,
+        lineStyle: { width: 1.6, color: palette[i%palette.length] },
+        data: rows.map(r => [r[0], r[2]]), legendHoverLink: true
+      });
+    });
+    cFits.setOption({
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'item' },
+      legend: { type: 'scroll', top: 0, textStyle: { color: '#8b98b8', fontSize: 10 }, data: ids.map(id=>'ID'+id+' IPRED') },
+      grid: { left: 50, right: 20, top: 40, bottom: 40 },
+      xAxis: { type: 'value', name: 'Time (h)', nameTextStyle: { color: '#8b98b8' }, ...baseAxis },
+      yAxis: { type: 'value', name: 'CONC', nameTextStyle: { color: '#8b98b8' }, ...baseAxis },
+      dataZoom: [{ type: 'inside' }, { type: 'slider', height: 18, bottom: 6 }],
+      series
+    }, true);
+  } else {
+    const rows = D.by_id[mode];
+    cFits.setOption({
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      legend: { top: 0, textStyle: { color: '#8b98b8' }, data: ['观测', 'IPRED'] },
+      grid: { left: 50, right: 20, top: 36, bottom: 40 },
+      xAxis: { type: 'value', name: 'Time (h)', nameTextStyle: { color: '#8b98b8' }, ...baseAxis },
+      yAxis: { type: 'value', name: 'CONC (mg/L)', nameTextStyle: { color: '#8b98b8' }, ...baseAxis },
+      series: [
+        { name: '观测', type: 'scatter', symbolSize: 10, itemStyle: { color: '#5b8ff9' }, data: rows.map(r=>[r[0],r[1]]) },
+        { name: 'IPRED', type: 'line', showSymbol: true, symbolSize: 5, smooth: 0.25,
+          lineStyle: { width: 2.4, color: '#5ad8a6' }, itemStyle: { color: '#5ad8a6' },
+          data: rows.map(r=>[r[0],r[2]]) }
+      ]
+    }, true);
+  }
+}
+sel.onchange = () => renderFits(sel.value);
+renderFits('1');
+sel.value = '1';
+
+// GOF
+const cGof = init('cGof');
+const maxG = Math.max(...D.gof.map(r => Math.max(r[0], r[1], r[2]))) * 1.05;
+cGof.setOption({
+  backgroundColor: 'transparent',
+  tooltip: { trigger: 'item' },
+  legend: { top: 0, textStyle: { color: '#8b98b8' } },
+  grid: { left: 50, right: 16, top: 36, bottom: 40 },
+  xAxis: { type: 'value', name: 'Predicted', min: 0, max: maxG, ...baseAxis, nameTextStyle: { color: '#8b98b8' } },
+  yAxis: { type: 'value', name: 'Observed', min: 0, max: maxG, ...baseAxis, nameTextStyle: { color: '#8b98b8' } },
+  series: [
+    { name: 'vs popPred', type: 'scatter', symbolSize: 7, itemStyle: { color: '#9270ca', opacity: 0.75 }, data: D.gof.map(r=>[r[1], r[0]]) },
+    { name: 'vs IPRED', type: 'scatter', symbolSize: 7, itemStyle: { color: '#5ad8a6', opacity: 0.85 }, data: D.gof.map(r=>[r[2], r[0]]) },
+    { name: 'y=x', type: 'line', showSymbol: false, data: [[0,0],[maxG,maxG]], lineStyle: { type: 'dashed', color: '#8b98b8', width: 1.2 }, tooltip: { show: false } }
+  ]
+});
+
+// IWRES
+const cIwres = init('cIwres');
+cIwres.setOption({
+  backgroundColor: 'transparent',
+  tooltip: { trigger: 'item', formatter: p => `t=${p.data[0]}h<br>IWRES=${p.data[1]}<br>ID ${p.data[2]}` },
+  grid: { left: 50, right: 16, top: 20, bottom: 40 },
+  xAxis: { type: 'value', name: 'Time (h)', ...baseAxis, nameTextStyle: { color: '#8b98b8' } },
+  yAxis: { type: 'value', name: 'IWRES', ...baseAxis, nameTextStyle: { color: '#8b98b8' } },
+  series: [{
+    type: 'scatter', symbolSize: 8,
+    data: D.iwres.map(r => ({ value: r, itemStyle: { color: r[1] >= 0 ? '#5b8ff9' : '#e8684a' } })),
+    markLine: { silent: true, symbol: 'none', lineStyle: { color: '#8b98b8', type: 'dashed' }, data: [{ yAxis: 0 }] }
+  }]
+});
+
+// Models
+const cModels = init('cModels');
+const mnames = D.models.map(m => m.name);
+cModels.setOption({
+  backgroundColor: 'transparent',
+  tooltip: { trigger: 'axis' },
+  legend: { top: 0, textStyle: { color: '#8b98b8' } },
+  grid: { left: 50, right: 16, top: 36, bottom: 50 },
+  xAxis: { type: 'category', data: mnames, axisLabel: { color: '#8b98b8', rotate: 20, fontSize: 10 }, axisLine: { lineStyle: { color: '#3a4660' } } },
+  yAxis: { type: 'value', scale: true, ...baseAxis },
+  series: [
+    { name: 'OFV', type: 'bar', data: D.models.map(m=>m.OFV), itemStyle: { color: '#5b8ff9', borderRadius: [4,4,0,0] } },
+    { name: 'BIC', type: 'bar', data: D.models.map(m=>m.BIC), itemStyle: { color: '#5ad8a6', borderRadius: [4,4,0,0] } },
+    { name: 'BICc', type: 'bar', data: D.models.map(m=>m.BICc), itemStyle: { color: '#f6bd16', borderRadius: [4,4,0,0] } }
+  ]
+});
+
+// Cov scatter
+const cCov = init('cCov');
+cCov.setOption({
+  backgroundColor: 'transparent',
+  tooltip: { trigger: 'item' },
+  legend: { top: 0, textStyle: { color: '#8b98b8' } },
+  grid: { left: 50, right: 16, top: 36, bottom: 40 },
+  xAxis: { type: 'value', name: 'WEIGHT (kg)', ...baseAxis, nameTextStyle: { color: '#8b98b8' } },
+  yAxis: { type: 'value', name: 'Individual param', ...baseAxis, nameTextStyle: { color: '#8b98b8' } },
+  series: [
+    { name: 'ka', type: 'scatter', symbolSize: 10, itemStyle: { color: '#5b8ff9' }, data: D.indiv.map(r=>[r.WEIGHT, r.ka]) },
+    { name: 'V', type: 'scatter', symbolSize: 10, itemStyle: { color: '#5ad8a6' }, data: D.indiv.map(r=>[r.WEIGHT, r.V]) },
+    { name: 'Cl', type: 'scatter', symbolSize: 10, itemStyle: { color: '#f6bd16' }, data: D.indiv.map(r=>[r.WEIGHT, r.Cl]) }
+  ]
+});
+
+// Eta bars
+const cEta = init('cEta');
+const eids = D.etas.map(e => e.id);
+cEta.setOption({
+  backgroundColor: 'transparent',
+  tooltip: { trigger: 'axis' },
+  legend: { top: 0, textStyle: { color: '#8b98b8' } },
+  grid: { left: 50, right: 16, top: 36, bottom: 40 },
+  xAxis: { type: 'category', data: eids.map(i=>'ID'+i), axisLabel: { color: '#8b98b8', fontSize: 10 }, axisLine: { lineStyle: { color: '#3a4660' } } },
+  yAxis: { type: 'value', name: 'η', ...baseAxis, nameTextStyle: { color: '#8b98b8' } },
+  series: [
+    { name: 'η_ka', type: 'bar', data: D.etas.map(e=>e.ka), itemStyle: { color: '#5b8ff9' } },
+    { name: 'η_V', type: 'bar', data: D.etas.map(e=>e.V), itemStyle: { color: '#5ad8a6' } },
+    { name: 'η_Cl', type: 'bar', data: D.etas.map(e=>e.Cl), itemStyle: { color: '#f6bd16' } }
+  ]
+});
+
+// Corr heatmap
+const cCorr = init('cCorr');
+const corrData = [];
+D.corr.names.forEach((ri, i) => {
+  D.corr.names.forEach((rj, j) => {
+    corrData.push([j, i, +D.corr.mat[i][j].toFixed(3)]);
+  });
+});
+cCorr.setOption({
+  backgroundColor: 'transparent',
+  tooltip: { formatter: p => `${D.corr.names[p.value[1]]} × ${D.corr.names[p.value[0]]}<br>r = ${p.value[2]}` },
+  grid: { left: 80, right: 40, top: 20, bottom: 70 },
+  xAxis: { type: 'category', data: D.corr.names, axisLabel: { color: '#8b98b8', rotate: 40, fontSize: 10 }, axisLine: { lineStyle: { color: '#3a4660' } } },
+  yAxis: { type: 'category', data: D.corr.names, axisLabel: { color: '#8b98b8', fontSize: 10 }, axisLine: { lineStyle: { color: '#3a4660' } } },
+  visualMap: { min: -1, max: 1, calculable: true, orient: 'horizontal', left: 'center', bottom: 0,
+    inRange: { color: ['#3b82f6','#0d1117','#ef4444'] }, textStyle: { color: '#8b98b8' } },
+  series: [{ type: 'heatmap', data: corrData, label: { show: true, fontSize: 9, color: '#e6edf3', formatter: p => Math.abs(p.value[2]) < 0.05 ? '' : p.value[2] } }]
+});
+
+// MB history
+const cMb = init('cMb');
+cMb.setOption({
+  backgroundColor: 'transparent',
+  tooltip: { trigger: 'axis' },
+  legend: { top: 0, textStyle: { color: '#8b98b8' } },
+  grid: { left: 50, right: 16, top: 36, bottom: 60 },
+  xAxis: { type: 'category', data: D.mb_hist.map(m=>'M'+m.model+'\n'+m.cov), axisLabel: { color: '#8b98b8', fontSize: 10 }, axisLine: { lineStyle: { color: '#3a4660' } } },
+  yAxis: { type: 'value', scale: true, ...baseAxis },
+  series: [
+    { name: '−2LL (lin)', type: 'bar', data: D.mb_hist.map(m=>m.OFV), itemStyle: { color: '#5b8ff9', borderRadius: [4,4,0,0] },
+      markPoint: { data: [{ name: 'best', coord: ['M3\nka~WEIGHT', 335.00], value: 'best', itemStyle: { color: '#5ad8a6' } }] } },
+    { name: 'BICc', type: 'line', data: D.mb_hist.map(m=>m.BICc), itemStyle: { color: '#f6bd16' }, lineStyle: { width: 2 } }
+  ]
+});
+
+// Param table
+function fmt(x, d=3){ return (x===null||x===undefined||Number.isNaN(x)) ? '—' : Number(x).toPrecision(d); }
+function rseBadge(r){
+  if (r===null||r===undefined) return '';
+  const c = r>50 ? '#e8684a' : r>30 ? '#f0b429' : '#5ad8a6';
+  return `<span style="color:${c}">${r.toFixed(1)}%</span>`;
+}
+const rows = [];
+rows.push('<tr><th colspan="7" style="text-align:left;color:#9ecbff;padding-top:10px">Base 模型（无协变量）</th></tr>');
+rows.push('<tr><th>参数</th><th>估计值</th><th>SE</th><th>RSE</th><th>95% CI</th><th>CV% (IIV)</th><th></th></tr>');
+D.pop_base.forEach(r => {
+  rows.push(`<tr><td>${r.parameter}</td><td>${fmt(r.value,4)}</td><td>${fmt(r.se,3)}</td><td>${rseBadge(r.rse)}</td><td>${fmt(r.lo,3)} – ${fmt(r.hi,3)}</td><td>${r.CV!=null?r.CV.toFixed(1):'—'}</td><td></td></tr>`);
+});
+rows.push('<tr><th colspan="7" style="text-align:left;color:#9ecbff;padding-top:14px">最终模型：ka ~ (WEIGHT−70)</th></tr>');
+rows.push('<tr><th>参数</th><th>估计值</th><th>SE</th><th>RSE</th><th>95% CI</th><th>CV% (IIV)</th><th>Wald p</th></tr>');
+const waldMap = Object.fromEntries(D.wald.map(w => [w.param, w.p]));
+D.pop_cwt.forEach(r => {
+  const p = waldMap[r.parameter];
+  rows.push(`<tr><td>${r.parameter}</td><td>${fmt(r.value,4)}</td><td>${fmt(r.se,3)}</td><td>${rseBadge(r.rse)}</td><td>${fmt(r.lo,3)} – ${fmt(r.hi,3)}</td><td>${r.CV!=null?r.CV.toFixed(1):'—'}</td><td>${p!=null?p.toFixed(4):'—'}</td></tr>`);
+});
+document.getElementById('tabParams').innerHTML = rows.join('');
+</script>
+</body>
+</html>

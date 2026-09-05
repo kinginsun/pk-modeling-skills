@@ -1,0 +1,2 @@
+parameter,covariate,statistics,p-value,test
+ka,beta_ka_WEIGHT,2.21998,0.0506965,t-Test

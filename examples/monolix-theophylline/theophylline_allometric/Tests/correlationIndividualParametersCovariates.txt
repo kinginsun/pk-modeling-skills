@@ -1,0 +1,3 @@
+parameter,covariate,statistics,p-value,test
+V,beta_V_logtWEIGHT,-2.62249,0.0254885,t-Test
+Cl,beta_Cl_logtWEIGHT,-0.809035,0.43732,t-Test
