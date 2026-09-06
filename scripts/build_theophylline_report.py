@@ -26,7 +26,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NM = os.path.join(ROOT, "examples", "nonmem-theophylline")
 MX = os.path.join(ROOT, "examples", "monolix-theophylline")
 MX_WT = os.path.join(MX, "theophylline_walkthrough")
-OUT = os.path.join(NM, "theophylline_nonmem_monolix_report.html")
+DOCS = os.path.join(ROOT, "docs")
+OUT = os.path.join(DOCS, "theophylline_nonmem_monolix_report.html")
 
 LN2 = math.log(2.0)
 
